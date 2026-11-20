@@ -59,9 +59,10 @@
   --accent-line: #543a9d;
   --accent-soft: #3d304d;
   --bad: #ff5a4f;
-  /* A next action's circle and day on its deadline, and past it (OmniFocus's, today.png and overdue.png, measured). */
+  /* A next action's circle and day on its deadline (OmniFocus's, today.png, measured), and past it: the user's red
+     (c.png, measured), as OmniFocus's orange read faint to them. */
   --due: #ffcb00;
-  --overdue: #ffa365;
+  --overdue: #ec4d62;
   --shadow-1: 0 1px 2px rgba(0, 0, 0, .4);
   --shadow-2: 0 2px 6px rgba(0, 0, 0, .35), 0 18px 44px rgba(0, 0, 0, .55);
   --scrim: rgba(0, 0, 0, .55);
@@ -126,7 +127,7 @@ button { cursor: pointer; border: 0; background: none; padding: 0; }
   display: flex; flex-direction: column;
   padding: 0 0 8px;
   min-height: 0;
-  --cell: clamp(56px, calc((100vh - 76px) / 7), 70px);
+  --cell: clamp(56px, calc((100vh - 120px) / 7), 70px);
 }
 .nav { display: flex; flex-direction: column; }
 .nav-item {
@@ -135,22 +136,21 @@ button { cursor: pointer; border: 0; background: none; padding: 0; }
 }
 /* Every hover look is a mouse's (:where adds no weight): a phone keeps :hover on what it last tapped, so a button
    stayed lit after a tap, and so did whatever button took its place. */
-:where(:root:not(.touch)) .nav-item:hover { background: var(--hover); color: var(--fg-2); }
+:where(:root:not(.touch)) :is(.nav-item, .sync:not(.bad)):hover { background: var(--hover); color: var(--fg-2); }
 /* Where you are, as OmniFocus 4 marks it: the name in its section's colour (--t) and a bar at the rail's inner edge. */
 .nav-item.on { color: var(--t); }
 .nav-item.on::after { content: ""; position: absolute; right: 0; top: 16%; bottom: 16%; width: 4px; border-radius: 3px 0 0 3px; background: var(--t); }
 .nav-ico { position: relative; display: inline-flex; }
-.nav-label { font-size: 10.5px; font-weight: calc(600 - var(--thin)); line-height: 1.2; letter-spacing: .01em; white-space: nowrap; }
+.nav-label, .sync { font-size: 10.5px; font-weight: calc(600 - var(--thin)); line-height: 1.2; letter-spacing: .01em; white-space: nowrap; }
 /* Inbox items waiting, a Research answer not yet read: a dot where OmniFocus 4 puts its count (no number, nothing
    blinking), clear of the icon. */
 .nav-flag { position: absolute; top: -2px; right: -6px; width: 9px; height: 9px; border-radius: 50%; background: var(--t); box-shadow: 0 0 0 2px var(--rail); }
 .side-foot { margin-top: auto; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 2px; padding-top: 12px; }
 .side-foot .icon-btn { height: 28px; border-radius: var(--r-ctl); }
-/* Settings' gear while Dropbox has signed SIByL out (see signOut): the rail's dot, in Settings' grey; its ring the
-   page's black in a phone's top bar. */
-.icon-btn:has(> .nav-flag) { position: relative; --t: var(--c-tools); }
-.icon-btn > .nav-flag { top: 2px; right: 1px; }
-.topbar .nav-flag { box-shadow: 0 0 0 2px var(--bg); }
+/* How the copy stands with Dropbox (see SyncState): over History and Settings, its cloud over its word as a section's
+   are; in a phone's top bar, at the other end, beside it. Red, it isn't synced. */
+.sync { flex-basis: 100%; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px 0; color: var(--fg-3); }
+.sync.bad { color: var(--bad); }
 /* One fixed label above everything, so no pane's clipping cuts it off. */
 .tip {
   position: fixed; left: 0; top: 0; z-index: 80; pointer-events: none; transform: translate(-50%, -100%);
@@ -187,6 +187,7 @@ button { cursor: pointer; border: 0; background: none; padding: 0; }
   .nav-label { display: none; }
   .side-foot { display: none; }
   .topbar { grid-area: top; position: relative; z-index: 16; display: flex; justify-content: flex-end; gap: 6px; padding: 6px 10px; border-bottom: 1px solid var(--line); }
+  .topbar .sync { flex: none; flex-direction: row; gap: 6px; margin-right: auto; padding: 0 4px; font-size: 12.5px; }
   .fab {
     position: fixed; right: 18px; bottom: calc(18px + var(--bar, 0px) + var(--tabs, 0px) + env(safe-area-inset-bottom, 0px)); z-index: 30;
     width: 54px; height: 54px; border-radius: 50%; border: 1px solid;
@@ -493,6 +494,8 @@ button.li-title { text-align: left; }
 .editing { scroll-margin: 12px 0 16px; }
 .editing > :is(.li, .pick-row) { background: var(--card); }
 .edit-b { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+/* Nothing under a name (a new Someday task's: no Delete, no when) takes no room either. */
+.edit-b:empty { display: none; }
 .rem-row > .edit-b { grid-area: 2 / 1 / auto / -1; padding-top: 12px; }
 .editing > .rem-row > .name-line { grid-column: 1 / -1; }
 /* An open thing's first line, one for every thing open in place (a task, a project): its name, then a task's circle
@@ -752,7 +755,7 @@ const removeItem = id => write(id, null);
    is in the folder (see gather), then pushes the copy if it has changes the file hasn't, telling Dropbox the version
    it merged (rev): if another device wrote in between, Dropbox refuses it, and SIByL syncs once more. A change syncs a
    second after the last one; while SIByL is in view it waits on Dropbox to say the folder changed (watch); it syncs
-   coming back into view and back online. One that fails says so and tries again at the next of those. Signed in once
+   coming back into view and back online. How it stands shows on the rail (SyncState). Signed in once
    on each device (see Settings): auth, in browser storage, false once Dropbox has signed SIByL out (see signOut). */
 /* The app's key: public, as signing in proves who's asking with PKCE, not with a secret. */
 const DROPBOX = '5098lrnrwicuodq';
@@ -769,18 +772,29 @@ async function getTokens(grant) {
 }
 /* A call to Dropbox's API on host api (its answer as JSON), content (a file's: its argument in a header, the response
    itself) or notify (no token). Its 409, a path not found or a version gone stale, is null; a token refused is renewed
-   and the call made once more; any other failure throws. */
-async function dropbox(host, path, arg, body, signal, again) {
+   and the call made once more. Dropbox, or the way there, out for a moment (no answer; 429, too many calls at once;
+   5xx, its own trouble) is asked again after 1, 2 and 4 seconds (one such moment during a Sweep said SIByL couldn't
+   sync, 2026-11-20); any other failure, or one that lasts, throws. */
+async function dropbox(host, path, arg, body, signal) {
   const headers = host === 'content' ? { 'Dropbox-API-Arg': JSON.stringify(arg), ...(body && { 'Content-Type': 'application/octet-stream' }) } : { 'Content-Type': 'application/json' };
-  if (host !== 'notify') {
-    if (!(auth.expires > Date.now() + 60000)) await getTokens({ grant_type: 'refresh_token', refresh_token: auth.refresh });
-    headers.Authorization = 'Bearer ' + auth.access;
+  for (let wait = 1, renewed = false; ; wait *= 2) {
+    let r = null;
+    try {
+      if (host !== 'notify') {
+        if (!(auth.expires > Date.now() + 60000)) await getTokens({ grant_type: 'refresh_token', refresh_token: auth.refresh });
+        headers.Authorization = 'Bearer ' + auth.access;
+      }
+      r = await fetch(`https://${host}.dropboxapi.com/2/${path}`, { method: 'POST', headers, body: host === 'content' ? body : JSON.stringify(arg), signal });
+    } catch (e) { if (signal?.aborted || !auth || wait > 4) throw e; }
+    if (r?.status === 401 && !renewed) { renewed = true; auth.expires = 0; continue; }
+    if (r && r.status !== 429 && r.status < 500) {
+      if (r.status === 409) return null;
+      if (!r.ok) throw new Error('Dropbox ' + r.status);
+      return host === 'content' ? r : r.json();
+    }
+    if (wait > 4) throw new Error('Dropbox ' + r.status);
+    await new Promise(go => setTimeout(go, wait * 1000));
   }
-  const r = await fetch(`https://${host}.dropboxapi.com/2/${path}`, { method: 'POST', headers, body: host === 'content' ? body : JSON.stringify(arg), signal });
-  if (r.status === 401 && !again) { auth.expires = 0; return dropbox(host, path, arg, body, signal, true); }
-  if (r.status === 409) return null;
-  if (!r.ok) throw new Error('Dropbox ' + r.status);
-  return host === 'content' ? r : r.json();
 }
 /* A file's copy merged into this one (its items a list): each doc as last written, unless deleted after that; what was
    deleted over 30 days ago forgotten. */
@@ -827,14 +841,17 @@ let syncing = null, more = false;
 function sync() {
   if (syncing) { more = true; return syncing; }
   return syncing = (async () => {
-    try { do { more = false; await exchange(); } while (more); } finally { syncing = null; }
+    try { do { more = false; await exchange(); } while (more); if (stuck) { stuck = false; refresh(); } } finally { syncing = null; }
   })();
 }
-/* A sync that fails says so, once in a burst, unless the device is offline (it syncs back online) or signed out. */
-let failedAt = 0;
+/* A sync that failed (see SyncState) is tried again a minute later while SIByL is in view, as well as at the next
+   change, coming back into view and back online. */
+let stuck = false, again = 0;
 function failed() {
-  if (auth && navigator.onLine && Date.now() - failedAt > 4000) toast('SIByL couldn’t sync with Dropbox. It will try again.');
-  failedAt = Date.now();
+  stuck = true;
+  refresh();
+  clearTimeout(again);
+  again = setTimeout(() => document.hidden || resync(), 60000);
 }
 const syncNow = () => auth && sync().catch(failed);
 /* While SIByL is in view: synced, then Dropbox is asked to answer once anything in the folder changes (a device's
@@ -854,6 +871,8 @@ async function watch() {
   if (watching === me) watching = null;
 }
 const unwatch = () => { watching?.abort(); watching = null; };
+/* A sync now, the watch begun again if it had stopped. */
+const resync = () => watching ? syncNow() : watch();
 /* Signing in, once on each device (Settings' Connect Dropbox): Dropbox's page, which sends SIByL back here with a code
    (see the start) that the tokens are given for, with PKCE: to show it's the page that asked, a secret made for the
    occasion (sybil.verifier), not one of the app's. Disconnecting forgets the tokens, and Dropbox does too. */
@@ -872,8 +891,8 @@ async function signedIn(code) {
   toast('Connected to Dropbox');
   watch();
 }
-/* By Disconnect (auth null), or by Dropbox (false: Settings' gear carries a dot until SIByL is connected again, so a
-   device that stopped syncing doesn't go unnoticed). */
+/* By Disconnect (auth null), or by Dropbox (false: the rail says so until SIByL is connected again, so a device that
+   stopped syncing doesn't go unnoticed: see SyncState). */
 const signOut = out => { unwatch(); keepAuth(out); refresh(); };
 function disconnect() {
   dropbox('api', 'auth/token/revoke', null).catch(() => {});
@@ -1149,6 +1168,9 @@ function toast(msg, opts = {}) {
   refresh();
 }
 function dismissToast(id) { if (shownToast?.id === id) { shownToast = null; refresh(); } }
+/* Words typed and then dropped (Esc, a window closed) are said to be, with an Undo that keeps them (keep: what Enter
+   would have done): Esc pressed for Enter lost an edit unnoticed (the user, 2026-11-20). */
+const notSaved = keep => toast('Not saved', { undo: keep });
 
 /* ==== Icons (24px, drawn with a stroke) ==== */
 /* Projects' mark: OmniFocus's flag (of1.jpg, of2.jpg, measured), its pole the flag's colour at its SF Symbol's second
@@ -1164,6 +1186,9 @@ const CLOCK_HANDS = '<path d="M14 5.5V14H8" fill="none" stroke="#fff" stroke-wid
    icon mostly empty, as OmniFocus draws its own small tray heavier. */
 const TRAY_THIN = 'M21.37 3C24.06 3 24.03 4.14 24.46 6.8L26 16.54L26 21.53C26 24.12 25.26 24.86 22.67 24.86L5.33 24.86C2.74 24.86 2 24.12 2 21.53L2 16.54L3.54 6.8C3.97 4.14 3.94 3 6.63 3L21.37 3ZM20.77 4.72C22.24 4.72 22.21 5.35 22.44 6.8L23.39 13.34C23.55 14.43 23.07 14.76 21.96 14.76L20.77 14.76C19.57 14.76 19.23 15.11 19.23 16.31L19.23 17.61C19.23 18.75 18.93 19.1 17.8 19.1L10.2 19.1C9.07 19.1 8.77 18.75 8.77 17.61L8.77 16.31C8.77 15.11 8.43 14.76 7.23 14.76L6.04 14.76C4.93 14.76 4.45 14.43 4.61 13.34L5.56 6.8C5.79 5.35 5.76 4.72 7.23 4.72L20.77 4.72Z';
 const TRAY = 'M21.37 3C24.06 3 24.03 4.14 24.45 6.8L26 16.54L26 21.53C26 24.12 25.26 24.86 22.67 24.86L5.33 24.86C2.74 24.86 2 24.12 2 21.53L2 16.54L3.55 6.8C3.97 4.14 3.94 3 6.63 3ZM20.91 5.5C21.83 5.5 21.81 5.9 21.95 6.8L22.95 13.1C23.12 14.18 22.64 14.5 21.55 14.5L20.8 14.5C19.63 14.5 19.3 14.83 19.3 16L19.3 16.9C19.3 17.99 18.99 18.3 17.9 18.3L10.1 18.3C9.01 18.3 8.7 17.99 8.7 16.9L8.7 16C8.7 14.83 8.37 14.5 7.2 14.5L6.45 14.5C5.36 14.5 4.88 14.18 5.05 13.1L6.05 6.8C6.19 5.9 6.17 5.5 7.09 5.5Z';
+/* The Calendar's mark: OmniFocus 4's Forecast icon, measured from it: a frame and its days' dots; in a 28px box. */
+const FORECAST = 'M5.25 3h17.5A3.25 3.25 0 0 1 26 6.25v15.5A3.25 3.25 0 0 1 22.75 25H5.25A3.25 3.25 0 0 1 2 21.75V6.25A3.25 3.25 0 0 1 5.25 3ZM6.5 9A2.5 2.5 0 0 0 4 11.5v9A2.5 2.5 0 0 0 6.5 23h15a2.5 2.5 0 0 0 2.5-2.5v-9A2.5 2.5 0 0 0 21.5 9Z';
+const DOTS = '<circle cx="14" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/><circle cx="9" cy="16" r="1.5"/><circle cx="14" cy="16" r="1.5"/><circle cx="19" cy="16" r="1.5"/><circle cx="9" cy="20" r="1.5"/><circle cx="14" cy="20" r="1.5"/>';
 /* Someday's mark: Things 3's Someday box (someday.png, measured): its lid, and under it the box with its handle cut out
    (evenodd); in a 28px box, as wide as the calendar. */
 const BOX = 'M2.8 3.71H25.2A.8.8 0 0 1 26 4.51V8.63A.8.8 0 0 1 25.2 9.43H2.8A.8.8 0 0 1 2 8.63V4.51A.8.8 0 0 1 2.8 3.71ZM2.87 10.57H25.13A.3.3 0 0 1 25.43 10.87V23.09A1.2 1.2 0 0 1 24.23 24.29H3.77A1.2 1.2 0 0 1 2.57 23.09V10.87A.3.3 0 0 1 2.87 10.57ZM11.14 12.86H16.86A1.14 1.14 0 0 1 16.86 15.14H11.14A1.14 1.14 0 0 1 11.14 12.86Z';
@@ -1198,8 +1223,7 @@ const ICONS = {
   /* When it shows on Next. */
   bell: '<path d="M10.27 21a2 2 0 0 0 3.46 0"/><path d="M3.26 15.33A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.67C19.41 13.96 18 12.5 18 8A6 6 0 0 0 6 8c0 4.5-1.41 5.96-2.74 7.33"/>',
   gear: '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
-  /* The Sweep's Defer: OmniFocus's defer arrow (forecast.png, measured). */
-  defer: '<path d="M3 19.4V15a3 3 0 0 1 3-3h15M14.3 5 21 12l-6.7 7"/>',
+  forecast: `<g fill="currentColor" stroke="none" transform="scale(${24 / 28})"><path fill-rule="evenodd" d="${FORECAST}"/>${DOTS}</g>`,
   repeat: '<path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/>',
   stack: `<path fill="currentColor" stroke="none" transform="scale(${24 / 28})" d="${STACK}"/>`,
   someday: `<path fill="currentColor" stroke="none" fill-rule="evenodd" transform="scale(${24 / 28})" d="${BOX}"/>`,
@@ -1207,6 +1231,8 @@ const ICONS = {
   clockDisc: `<g transform="scale(${24 / 28})"><circle cx="14" cy="14" r="12" fill="currentColor" stroke="none"/>${CLOCK_HANDS}</g>`,
   /* A task's context, as OmniFocus marks it: where it's seen, on Next. */
   eye: '<path d="M2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 19.88 0 1 1 0 0 1 0 .7 10.75 10.75 0 0 1-19.88 0"/><circle cx="12" cy="12" r="3"/>',
+  /* Dropbox, where the copies meet (see SyncState). */
+  cloud: '<path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>',
   /* A project on hold. */
   pause: '<path d="M9 6v12M15 6v12"/>',
   /* A source, opening elsewhere. */
@@ -1230,8 +1256,7 @@ const ART = {
   inbox: `<path fill-rule="evenodd" d="${TRAY}" fill="url(#art-inbox)"/>`,
   /* As wide as the square, centred on it. */
   work: `<g transform="translate(13.26 23.76) scale(.7368)">${BROOM}</g>`,
-  /* The Calendar: OmniFocus 4's Forecast icon, measured from it. */
-  reminders: '<path fill-rule="evenodd" d="M5.25 3h17.5A3.25 3.25 0 0 1 26 6.25v15.5A3.25 3.25 0 0 1 22.75 25H5.25A3.25 3.25 0 0 1 2 21.75V6.25A3.25 3.25 0 0 1 5.25 3ZM6.5 9A2.5 2.5 0 0 0 4 11.5v9A2.5 2.5 0 0 0 6.5 23h15a2.5 2.5 0 0 0 2.5-2.5v-9A2.5 2.5 0 0 0 21.5 9Z" fill="url(#art-reminders)"/><g fill="url(#art-dots)"><circle cx="14" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/><circle cx="9" cy="16" r="1.5"/><circle cx="14" cy="16" r="1.5"/><circle cx="19" cy="16" r="1.5"/><circle cx="9" cy="20" r="1.5"/><circle cx="14" cy="20" r="1.5"/></g>',
+  reminders: `<path fill-rule="evenodd" d="${FORECAST}" fill="url(#art-reminders)"/><g fill="url(#art-dots)">${DOTS}</g>`,
   /* What repeats: the repeat mark. */
   ticklers: lined('repeat', 'stroke="url(#art-ticklers)"'),
   projects: `<g fill="url(#art-projects)">${FLAG}</g>`,
@@ -1488,25 +1513,35 @@ const Trash = ({ label, tip = 'Delete', cls, onClick }) => html`<button class=${
 /* On a press, keeps the cursor in the field being typed in. */
 const holdFocus = e => e.preventDefault();
 
-/* A box that grows with its words. line: one line of words that wraps, where Enter is Done (a phone's key says so) and
-   a pasted break becomes a space. Measuring resets it to its rows for a moment, which would pull up a page scrolled to
-   its end: the scroll is kept. */
+/* A box that grows with its words, measured again as its width changes too: measured while the page was still narrow
+   (Capture as the installed app starts cold), an empty box kept its placeholder's wrapped height, and the window was
+   twice its size or more. line: one line of words that wraps, where Enter is Done (a phone's key says so) and a pasted
+   break becomes a space. Measuring resets it to its rows for a moment, which would pull up a page scrolled to its end:
+   the scroll is kept. */
 function AutoTextarea({ value, onInput, inputRef, line, ...rest }) {
   const own = useRef(null);
   const ref = inputRef || own;
-  useLayoutEffect(() => {
+  const fit = () => {
     const el = ref.current, box = scrollerOf(el), top = box && box.scrollTop;
     el.style.height = '';
     if (el.scrollHeight > el.clientHeight) el.style.height = el.scrollHeight + el.offsetHeight - el.clientHeight + 'px';
     if (box) box.scrollTop = top;
-  }, [value, rest.placeholder]);
+  };
+  useLayoutEffect(fit, [value, rest.placeholder]);
+  useEffect(() => {
+    const el = ref.current;
+    let width = el.clientWidth;
+    const watch = new ResizeObserver(() => { if (el.clientWidth !== width) { width = el.clientWidth; fit(); } });
+    watch.observe(el);
+    return () => watch.disconnect();
+  }, []);
   const input = e => { if (line && e.target.value.includes('\n')) e.target.value = e.target.value.replace(/\s*\n\s*/g, ' '); onInput(e); };
   return html`<textarea ref=${ref} rows="1" value=${value} enterkeyhint=${line && 'done'} onInput=${input} ...${rest}></textarea>`;
 }
 
-/* A one-line name box (words edited in place): Enter or a press elsewhere keeps a changed name with words in it,
-   Esc drops it. A press elsewhere keeps it as the press lands (onPressEnd), so nothing folds up under the pointer;
-   closed stays closed, so a blur on removal can't keep it twice. */
+/* A one-line name box (words edited in place): Enter or a press elsewhere keeps a changed name with words in it, Esc
+   drops it (notSaved). A press elsewhere keeps it as the press lands (onPressEnd), so nothing folds up under the
+   pointer; closed stays closed, so a blur on removal can't keep it twice. */
 function KeepBox({ value, onSave, onClose, ...rest }) {
   const [draft, setDraft] = useState(value);
   const ref = useRef(null), closed = useRef(false);
@@ -1516,7 +1551,7 @@ function KeepBox({ value, onSave, onClose, ...rest }) {
     closed.current = true;
     onClose(e);
     const v = oneLine(draft);
-    if (keep && v && v !== value.trim()) onSave(v);
+    if (v && v !== value.trim()) keep ? onSave(v) : notSaved(() => onSave(v));
   };
   return html`<${AutoTextarea} line inputRef=${ref} value=${draft} onInput=${e => setDraft(e.target.value)} onBlur=${() => onPressEnd(() => finish(true))}
     onKeyDown=${typing({ done: e => finish(true, e), esc: e => finish(false, e) })} ...${rest} />`;
@@ -1660,15 +1695,16 @@ const Select = ({ options, value, onChange, unset, ...rest }) => html`<span clas
    */
 const PickField = ({ type, value, onChange, ...props }) => html`<span class=${cx('field pick', !value && 'unset')}>${value ? (type === 'date' ? fmtDate : fmtTime)(value) : props['aria-label']}<input type=${type} value=${value} ...${props} onInput=${e => onChange(e.target.value)} onChange=${e => onChange(e.target.value)} /></span>`;
 
-/* A task open in place everywhere (one there is, a new one, what the Sweep defers; see TaskEditor): its repeat's
-   choices and how it ends. */
-const REPEATS = [{ id: 'none', label: 'Once' }, { id: 'daily', label: 'Daily' }, { id: 'weekly', label: 'Weekly' }, { id: 'monthly', label: 'Monthly' }, { id: 'yearly', label: 'Yearly' }, { id: 'interval', label: 'Every few days' }];
+/* A Tickler open in place everywhere (one there is, a new one, what the Sweep makes one; see TaskEditor): its repeat's
+   choices (Once would make it the Calendar's: see kindOf) and how it ends. */
+const REPEATS = [{ id: 'daily', label: 'Daily' }, { id: 'weekly', label: 'Weekly' }, { id: 'monthly', label: 'Monthly' }, { id: 'yearly', label: 'Yearly' }, { id: 'interval', label: 'Every few days' }];
 const ENDS = [{ id: 'never', label: 'Never' }, { id: 'on', label: 'On a day' }, { id: 'after', label: 'After' }];
 /* A thing's row turned into its editor, as OmniFocus opens a row (see ui.open). It holds its changes (draft: all of
    them, as one string): Enter, a click outside it or a phone's Back saves them (save, given fail(why) to say why it
    can't; false then, and the row stays), Esc drops them (drop). Nothing changed, nothing is written, and a new one (no
-   old) left untouched by a click elsewhere or Back makes nothing. What was wrong (error) goes at the next change. bar:
-   the Sweep's, whose Save saves it, so no click there does, and whose Back (a phone's too) drops it. Opening, it takes
+   old) left untouched by a click elsewhere or Back makes nothing; changes dropped by Esc are notSaved. What was wrong
+   (error) goes at the next change. bar: the Sweep's, whose Save saves it, so no click there does, and whose Back (a
+   phone's too, and Esc) drops it, the item still there to pick again. Opening, it takes
    the keyboard (Tab goes through it, Enter is its Done) and comes into sight. */
 function useOpened({ draft, old, save, bar }) {
   const box = useRef(null), latest = useRef(null), begun = useRef(draft);
@@ -1680,7 +1716,8 @@ function useOpened({ draft, old, save, bar }) {
     const end = () => { closed = true; setUI({ open: null }); return true; };
     return { save: away => closed || (!!latest.current(away) && end()), drop: () => closed || end() };
   });
-  useLayer(true, ends.drop, () => ends.save(), bar ? ends.drop : () => ends.save(true));
+  const esc = () => { ends.drop(); if (draft !== begun.current) notSaved(() => save(toast)); };
+  useLayer(true, bar ? ends.drop : esc, () => ends.save(), bar ? ends.drop : () => ends.save(true));
   useClickAway(box, !bar, () => ends.save(true));
   useInSight(box, box);
   useEffect(() => {
@@ -1719,39 +1756,42 @@ function Words({ value, class: cls, ...box }) {
     : html`<div class=${cx('words', cls)} role="textbox" tabindex="0" aria-label=${box['aria-label']} onPointerDown=${press} onFocus=${() => setHeld(true)}>${pencilled(value)}</div>`;
 }
 /* A task's fields as an editor shows them, all its changes in one object (it: the task there is, or as it starts). A
-   new one starts tomorrow, unless it starts with no day (Someday's or a next action's: date ''). */
+   new one starts tomorrow, unless it starts with no day (Someday's, a next action's, a Tickler's: see TICKLER). */
 function taskFields(it) {
   const start = it.date ?? addDays(todayISO(), 1), rep = it.repeat || { type: 'none' };
   return {
     title: it.title || '', date: start, time: it.time || '', type: rep.type,
-    days: rep.days || (start ? [parseDay(start).getDay()] : []),
+    days: rep.days || [parseDay(start || lowDay(it)).getDay()],
     every: rep.type === 'interval' ? rep.every : 2, months: rep.type === 'monthly' && rep.every || 1,
     by: rep.nth ? (rep.nth < 0 ? 'last' : 'nth') : 'day',
     end: rep.until ? 'on' : rep.left ? 'after' : 'never', until: rep.until || '', times: rep.left || 10,
     ahead: it.ahead || 0, steps: it.steps || [], context: it.context || '',
   };
 }
-/* Whether it can repeat: a next action (or one made as one: it.next) has no time, doesn't repeat (what repeats is a
-   Tickler's) and is always shown, its day a deadline; nor does a project's repeat: ticking it asks for the project's
-   next. */
-const repeats = (f, it) => !f.context && !it.next && !it.project;
-/* The first day a task can be given: today, or tomorrow for what the Sweep defers (later: what's for today is a next
-   action, its deadline today). */
+/* What a task is, which its editor keeps, offering nothing that would make it another (a context made a dated task a
+   next action, a repeat made it a Tickler: the user's ask, 2026-11-20): a next action (a context, or made as one: next;
+   no time, always shown, its day a deadline), a Tickler (it repeats), Someday's (no day), else the Calendar's. A
+   project's next action (action) is a context's or, when it can't be done before a day, the Calendar's: its editor
+   offers both (see PickEditor); it never repeats, as ticking it asks for the project's next. */
+const kindOf = it => it.project ? 'action' : it.next || it.context ? 'next' : it.repeat && isRepeating(it) ? 'tickler' : it.date === '' ? 'someday' : 'calendar';
+/* A new Tickler, on Ticklers and in the Sweep: weekly, with no start (it starts as soon as it can). */
+const TICKLER = { date: '', repeat: { type: 'weekly' } };
+/* The first day a task can be given: today, or tomorrow for what the Sweep puts on the Calendar or makes a Tickler
+   (later: what's for today is a next action, its deadline today). */
 const lowDay = it => it.later ? addDays(todayISO(), 1) : todayISO();
 /* How a monthly one follows its day, back to its day of the month when the start can't be the one picked. */
 const monthBy = f => (isDay(f.date) ? monthlyWays(f.date) : []).some(w => w.id === f.by) ? f.by : 'day';
-/* The task its fields make (it: as it was, or as it starts; next: made as a next action, so it needs a context; a
-   project's needs a context or a day), or what's wrong with them. Only a Tickler keeps steps. */
+/* The task its fields make (it: as it was, or as it starts, its kind kept: see kindOf), or what's wrong with them. Only
+   a Tickler keeps steps. */
 function taskOf(f, it) {
-  const { title, date, time, days, every, months, end, until, times, ahead, steps, context } = f;
-  const low = lowDay(it), type = repeats(f, it) ? f.type : 'none';
+  const { title, time, type, days, every, months, end, until, times, ahead, steps, context } = f;
+  const low = lowDay(it), kind = kindOf(it), date = type === 'none' ? f.date : f.date || low;
   if (!oneLine(title)) return 'Give it a name.';
-  if (it.next && !context) return 'Pick a context.';
+  if (kind === 'next' && !context) return 'Pick a context.';
   /* A project's is a next action, or, when it can't be done before a day, that day's task (the Calendar's until then).
      */
-  if (it.project && !context && !date) return 'Pick a context or a day.';
-  /* No day: Someday's (or with a context, no deadline), unless it repeats. */
-  if (!date && type !== 'none') return 'Pick a date.';
+  if (kind === 'action' && !context && !date) return 'Pick a context or a day.';
+  if (kind === 'calendar' && !date) return 'Pick a date.';
   if (date && date < low && date !== it.date) return `Pick a day from ${fmtDay(low).toLowerCase()} on.`;
   if (type === 'weekly' && !days.length) return 'Pick at least one day of the week.';
   if (type !== 'none' && end === 'on' && !isDay(until)) return 'Pick the last day.';
@@ -1762,46 +1802,47 @@ function taskOf(f, it) {
 }
 /* A field's icon, its label (Ends: a chequered flag; Show: a bell). */
 const mark = (id, icon) => html`<label class="field-mark" for=${id}><${Icon} name=${icon} size=${16} /></label>`;
-/* When a task comes up, a row each led by its icon (inside a .when): its context; for a next action (one with a
-   context, or made as one) only the day it's due, if any; else its day and time, the repeat with its details (if it
-   can), how it ends, when it shows (dropdowns as wide as their choice). f, set: its fields (taskFields) and a field's
+/* When a task comes up, a row each led by its icon (inside a .when), as its kind has them (see kindOf): a next
+   action's context and the day it's due, if any; the Calendar's day, time and when it shows; a Tickler's too, the day
+   it starts (none: as soon as it can), with its repeat's details and how it ends; a project's next action a context,
+   or, with none, the Calendar's (dropdowns as wide as their choice). f, set: its fields (taskFields) and a field's
    setter; it: as it was (a day missed stays pickable). A context there isn't yet is typed in the dropdown's place (New
    context…), made as Enter or a press elsewhere keeps it, and picked; Esc leaves the one picked. */
 function When({ f, set, it }) {
-  const { date, time, days, end, until, ahead, context } = f;
+  const { date, time, type, days, end, until, ahead, context } = f;
   const [naming, setNaming] = useState(false);
-  const low = lowDay(it), first = it.date && it.date < low ? it.date : low, can = repeats(f, it), type = can ? f.type : 'none', action = context || it.next;
+  const kind = kindOf(it), low = lowDay(it), first = it.date && it.date < low ? it.date : low, due = context || kind === 'next';
   /* A day earlier or later than the one shown (later than the first it can be, if it's none or past: the day after),
      never before the first. */
   const base = date > low ? date : low;
   /* A count (field k) and its unit: "1 month", "10 times". */
   const count = (k, max, unit) => html`<input class="field num" type="number" min="1" max=${max} value=${f[k]} aria-label=${`Number of ${unit}s`}
     style=${{ '--digits': String(f[k]).length || 1 }} onInput=${e => set(k)(e.target.value)} /><span>${+f[k] === 1 ? unit : unit + 's'}</span>`;
-  /* Where it's done, which makes it a next action (Next's panes, in Settings' order); none for the rest. */
-  return html`<div class="row">${mark('rf-context', 'eye')}${naming
+  /* Where it's done (Next's panes, in Settings' order). */
+  return html`${(kind === 'next' || kind === 'action') && html`<div class="row">${mark('rf-context', 'eye')}${naming
       ? html`<${KeepBox} id="rf-context" class="field" value="" placeholder="New context" aria-label="New context" onClose=${() => setNaming(false)}
           onSave=${title => set('context')(makeThing('context', { title }).id)} />`
       : html`<${Select} id="rf-context" aria-label="Context" options=${[{ id: '', label: 'No context' }, ...inOrder('context').map(c => ({ id: c.id, label: c.title })), { id: NEW, label: 'New context…' }]}
-          value=${context} unset=${!context} onChange=${v => v === NEW ? setNaming(true) : set('context')(v)} />`}</div>
-    <div class="row">${mark('rf-date', 'calendar')}<${PickField} type="date" id="rf-date" aria-label=${action ? 'Due' : type === 'none' ? 'Date' : 'Starts'} min=${first} value=${date} onChange=${set('date')} />
+          value=${context} unset=${!context} onChange=${v => v === NEW ? setNaming(true) : set('context')(v)} />`}</div>`}
+    <div class="row">${mark('rf-date', 'calendar')}<${PickField} type="date" id="rf-date" aria-label=${due ? 'Due' : type === 'none' ? 'Date' : 'Starts'} min=${first} value=${date} onChange=${set('date')} />
       <span class="seg"><button aria-label="A day earlier" disabled=${base === low} onClick=${() => set('date')(addDays(base, -1))}><${Icon} name="minus" size=${14} /></button><button aria-label="A day later" onClick=${() => set('date')(addDays(base, 1))}><${Icon} name="plus" size=${14} /></button></span>
-      ${!action && html`<span class="row">${mark('rf-time', 'clock')}<${PickField} type="time" id="rf-time" aria-label="Time" value=${time} onChange=${set('time')} /></span>`}</div>
-    ${can && html`<div class="row">${mark('rf-repeat', 'repeat')}<${Select} id="rf-repeat" aria-label="Repeat" options=${REPEATS} value=${type} onChange=${set('type')} />
+      ${!due && html`<span class="row">${mark('rf-time', 'clock')}<${PickField} type="time" id="rf-time" aria-label="Time" value=${time} onChange=${set('time')} /></span>`}</div>
+    ${type !== 'none' && html`<div class="row">${mark('rf-repeat', 'repeat')}<${Select} id="rf-repeat" aria-label="Repeat" options=${REPEATS} value=${type} onChange=${set('type')} />
       ${type === 'weekly' && html`<div class="days" role="group" aria-label="On">${WEEK_ORDER.map(d => html`<button aria-pressed=${days.includes(d)} class=${cx(days.includes(d) && 'on')} onClick=${() => set('days')(toggleIn(days, d))}>${WD[d].slice(0, 2)}</button>`)}</div>`}
       ${type === 'monthly' && html`<span class="row">${isDay(date) && html`<${Select} aria-label="On" options=${monthlyWays(date)} value=${monthBy(f)} onChange=${set('by')} />`}<span>Every</span>${count('months', 120, 'month')}</span>`}
-      ${type === 'interval' && html`<span class="row"><span>Every</span>${count('every', 365, 'day')}</span>`}</div>`}
-    ${type !== 'none' && html`<div class="row"><span class="row">${mark('rf-end', 'finish')}<${Select} id="rf-end" aria-label="Ends" options=${ENDS} value=${end} onChange=${set('end')} /></span>
+      ${type === 'interval' && html`<span class="row"><span>Every</span>${count('every', 365, 'day')}</span>`}</div>
+      <div class="row"><span class="row">${mark('rf-end', 'finish')}<${Select} id="rf-end" aria-label="Ends" options=${ENDS} value=${end} onChange=${set('end')} /></span>
       ${end === 'on' && html`<${PickField} type="date" aria-label="Last day" min=${date} value=${until} onChange=${set('until')} />`}
       ${end === 'after' && html`<span class="row">${count('times', 999, 'time')}</span>`}</div>`}
-    ${!action && html`<div class="row">${mark('rf-ahead', 'bell')}<${Select} id="rf-ahead" aria-label="Show in Next" options=${AHEAD} value=${ahead} onChange=${v => set('ahead')(+v)} /></div>`}`;
+    ${!due && html`<div class="row">${mark('rf-ahead', 'bell')}<${Select} id="rf-ahead" aria-label="Show in Next" options=${AHEAD} value=${ahead} onChange=${v => set('ahead')(+v)} /></div>`}`;
 }
 /* A task open in place: one there is (old), or a new one (initial, its file saying how it's made, else addThing; next,
-   later: see taskOf). The row's first line keeps its name and circle; under them (one there is, its Delete first, but
-   a project's, which goes only with its project) what's wrong, when it comes up (When), then a Tickler's steps, folded
-   (see StepList). One set before stays (a thing missed). Someday's (no day, no context) has no when: it becomes a
-   project or nothing, its ring (Make it a project) where a circle would be. bar: see useOpened. */
+   later: see kindOf, lowDay). The row's first line keeps its name and circle; under them (one there is, its Delete
+   first) what's wrong, when it comes up (When), then a Tickler's steps, folded (see StepList). One set before stays (a
+   thing missed). Someday's has no when: it becomes a project or nothing, its ring (Make it a project) where a circle
+   would be. A project's next action opens with its project (see PickEditor). bar: see useOpened. */
 function TaskEditor({ old, initial, bar }) {
-  const it = old || initial, someday = it.date === '' && !it.context && !it.next;
+  const it = old || initial, kind = kindOf(it);
   const [f, setF] = useState(() => taskFields(it));
   const set = k => v => setF(f => ({ ...f, [k]: v }));
   const { box, error, save, drop } = useOpened({ old, bar, draft: JSON.stringify(f), save: fail => {
@@ -1823,14 +1864,14 @@ function TaskEditor({ old, initial, bar }) {
   };
   return html`<li class="editing" ref=${box} tabindex="-1"><div class="li rem-row">
     <div class="name-line"><div class="li-body"><${Name} label="Task" value=${f.title} onInput=${set('title')} /></div>
-      ${old && (someday ? html`<button class="ring-btn" aria-label="Make it a project" data-tip="Make it a project" onClick=${toProject}><${Icon} name="project" size=${16} /></button>`
+      ${old && (kind === 'someday' ? html`<button class="ring-btn" aria-label="Make it a project" data-tip="Make it a project" onClick=${toProject}><${Icon} name="project" size=${16} /></button>`
         : html`<${DoneButton} label=${'Done: ' + old.title} due=${dueOf(old)} onClick=${() => { if (save()) completeReminder(store.items[old.id]); }} />`)}</div>
     <div class="edit-b">
-      ${old && !old.project && html`<${DeleteButton} old=${old} drop=${drop} />`}
+      ${old && html`<${DeleteButton} old=${old} drop=${drop} />`}
       <${Status} error=${error} />
-      ${!someday && html`<div class="when"><${When} f=${f} set=${set} it=${it} /></div>`}
+      ${kind !== 'someday' && html`<div class="when"><${When} f=${f} set=${set} it=${it} /></div>`}
     </div>
-    ${repeats(f, it) && f.type !== 'none' && html`<${StepList} list=${f.steps} onChange=${fn => setF(f => ({ ...f, steps: fn(f.steps) }))} />`}
+    ${kind === 'tickler' && html`<${StepList} list=${f.steps} onChange=${fn => setF(f => ({ ...f, steps: fn(f.steps) }))} />`}
   </div></li>`;
 }
 
@@ -1850,11 +1891,11 @@ const newOpen = kind => ui.open?.kind === kind && !ui.open.id;
    useOpened). */
 const NewThing = ({ bar }) => { const o = ui.open, Editor = editorOf(o.kind); return html`<${Block}><ul class="list"><${Editor} key=${o.key} initial=${o} bar=${bar} /></ul><//>`; };
 
-/* A list of tasks: each task's row, its project (a click opens the project in the row's place, for a look at it
-   without leaving the page), and a Tickler's unticked steps under it, folded by their count (they're routine) until
-   unfolded, kept so while you're on the page, more added at their foot; open, its editor (its project's, ticked: see
-   completeReminder). day(r): the words for its day, nothing where its page or pane names it (Next's today, the
-   Calendar's days). A click anywhere on it opens it (the Sweep's task, the Sweep: see OWN; the Review, nothing: only
+/* A list of tasks: each task's row, its project, and a Tickler's unticked steps under it, folded by their count
+   (they're routine) until unfolded, kept so while you're on the page, more added at their foot; open, its editor (its
+   project's, ticked: see completeReminder). day(r): the words for its day, nothing where its page or pane names it
+   (Next's today, the Calendar's days). A click anywhere on it opens it, a project's next action its project, in the
+   row's place (one editor for the two: the user's ask; the Sweep's task, the Sweep: see OWN; the Review, nothing: only
    its circle); deleting is its open row's, never a slip on the row. A task of the data's and its steps drag (see
    dropTask), among the rows of their lane (laneOf), into a Tickler too; the page puts the list in its zone. */
 function useTaskRows(day) {
@@ -1867,7 +1908,7 @@ function useTaskRows(day) {
     const unfolded = flipped.includes(r.id);
     const when = [day(r), r.time && fmtTime(r.time)].filter(Boolean).join(' · ');
     const fold = steps.length > 0 && html`<button class="li-link" aria-expanded=${unfolded} onClick=${() => setFlipped(toggleIn(flipped, r.id))}>${units(steps.length, 'step')}<span class="chev"><${Icon} name="right" size=${13} /></span></button>`;
-    const own = OWN[r.id], go = own ? own.go : () => openThing({ id: r.id }), p = store.items[r.project], lane = r.context || r.date, due = dueOf(r);
+    const own = OWN[r.id], go = own ? own.go : () => openThing({ id: r.project || r.id }), p = store.items[r.project], lane = r.context || r.date, due = dueOf(r);
     const drag = key => ({ 'data-key': key, 'data-lane': lane, 'data-time': r.time, onPointerDown: e => startDrag(e, (...aim) => dropTask(key, ...aim)), onTouchMove: holdTouch });
     return html`<li key=${r.id}><div class=${cx('li rem-row', go && 'tappable', !own && 'drags')} onClick=${go && opens(go)} ...${!own && { ...drag(r.id), 'data-into': isRepeating(r) ? '' : undefined }}>
       ${go ? html`<button class="li-title" onClick=${go}>${r.title}</button>` : html`<span class="li-title">${r.title}</span>`}
@@ -1964,9 +2005,19 @@ function Splash({ art, words }) {
   return html`<div class="splash" style=${{ '--t': `var(--c-${art})` }} onClick=${() => setUI({ splash: null })}><div><${Art} id=${art} size=${84} /><b>${words}</b></div></div>`;
 }
 
-/* History and Settings, at the rail's foot or in a phone's top bar, pages off the rail (no number key). */
-const Tools = () => html`<button class="icon-btn" aria-label="History" onClick=${() => navigate('history')}><${Icon} name="history" /></button>
-  <button class="icon-btn" aria-label=${auth === false ? 'Settings, Dropbox signed SIByL out' : 'Settings'} onClick=${() => navigate('settings')}><${Icon} name="gear" />${auth === false && html`<span class="nav-flag" aria-hidden="true"></span>`}</button>`;
+/* How this device's copy stands with Dropbox, in words (the user's ask, 2026-11-20: a dot on Settings' gear left them
+   unsure): Synced, or Syncing while it has changes Dropbox hasn't; in red, what keeps them from it: Offline, Not
+   synced (a sync failed: see failed), Signed out (by Dropbox: see signOut). A press syncs at once, or, signed out,
+   goes to Settings to connect again. Nothing while SIByL isn't connected (Disconnect). */
+function SyncState() {
+  if (auth === null) return null;
+  const [word, bad] = auth === false ? ['Signed out', 1] : !navigator.onLine ? ['Offline', 1] : stuck ? ['Not synced', 1] : [store.unpushed ? 'Syncing' : 'Synced'];
+  return html`<button class=${cx('sync', bad && 'bad')} onClick=${() => auth ? resync() : navigate('settings')}><${Icon} name="cloud" size=${16} />${word}</button>`;
+}
+/* How it syncs, then History and Settings, pages off the rail (no number key): at the rail's foot or in a phone's top
+   bar. */
+const Tools = () => html`<${SyncState} /><button class="icon-btn" aria-label="History" onClick=${() => navigate('history')}><${Icon} name="history" /></button>
+  <button class="icon-btn" aria-label="Settings" onClick=${() => navigate('settings')}><${Icon} name="gear" /></button>`;
 function Sidebar() {
   const inboxN = all('inbox').length;
   const waits = { inbox: inboxN > 0 && `Inbox, ${inboxN} waiting`, research: all('study').some(s => s.answered && !s.read) && 'Research, a new answer' };
@@ -2043,16 +2094,16 @@ function useTapped() {
   }, [tapped]);
   return k => ({ open: tapped === k, onClick: opens(() => { if (touching()) setTapped(t => t === k ? null : k); }) });
 }
-/* The foot of a task's steps, open in place or only unfolded: Enter or a press elsewhere adds what's typed, a line
-   each (onAdd gets them), and stays (Enter with nothing typed is what's open's Done); Esc drops it. li: its line's
-   attributes (where a drag lands: see useTaskRows). */
+/* The foot of a task's steps, open in place or only unfolded: Enter or a press elsewhere adds what's typed, a line each
+   (onAdd gets them), and stays (Enter with nothing typed is what's open's Done); Esc drops it (notSaved). li: its
+   line's attributes (where a drag lands: see useTaskRows). */
 function AddLine({ hint, onAdd, ...li }) {
   const [draft, setDraft] = useState('');
   const box = useRef(null), dropped = useRef(false);
   const add = text => { onAdd(splitLines(text)); setDraft(''); };
   return html`<li ...${li}><div class="add-row" onClick=${() => box.current.focus()}>
     <${AutoTextarea} inputRef=${box} value=${draft} placeholder=${hint} aria-label=${hint} onInput=${e => setDraft(e.target.value)}
-      onKeyDown=${typing({ done: draft.trim() && (() => add(draft)), esc: e => { dropped.current = true; setDraft(''); e.target.blur(); } })}
+      onKeyDown=${typing({ done: draft.trim() && (() => add(draft)), esc: e => { dropped.current = true; setDraft(''); e.target.blur(); if (draft.trim()) notSaved(() => add(draft)); } })}
       onBlur=${() => { const text = draft; if (dropped.current) dropped.current = false; else if (text.trim()) onPressEnd(() => add(text)); }} />
     <span class="add-ico"><${Icon} name="plus" size=${16} /></span>
   </div></li>`;
@@ -2319,14 +2370,16 @@ function RemindersView() {
 
 /* ==== The Sweep ('work' inside) ==== */
 /* What an Inbox item can be once it can't be done now: the kind of thing it makes, which opens in its place as the
-   pages' pluses open one, the Sweep's Save filing it (Next a next action, Defer and Someday a task); start(words):
-   what a new one starts with, the item's words its name (Defer's day from tomorrow on, later: what's for today is a
-   next action, due today; Someday's none), or a new project's next action (the project is what it's for: mostly a
-   name the item doesn't have). Project first asks Which one?, in the choices' place, of a new one (fresh: its words)
-   and those there are (into), the item the last line of one's support. */
+   pages' pluses open one, the Sweep's Save filing it (Next a next action, Calendar, Tickler and Someday a task: see
+   kindOf); start(words): what a new one starts with, the item's words its name (the Calendar's day and a Tickler's
+   start from tomorrow on, later: what's for today is a next action, due today; Someday's none), or a new project's next
+   action (the project is what it's for: mostly a name the item doesn't have). Project first asks Which one?, in the
+   choices' place, of a new one (fresh: its words) and those there are (into), the item the last line of one's support.
+   */
 const ANSWERS = [
   { id: 'next', label: 'Next', icon: 'clockDisc', color: 'var(--c-today)', kind: 'reminder', start: t => ({ title: t, date: '', next: true }) },
-  { id: 'send', label: 'Defer', icon: 'defer', color: 'var(--c-reminders)', kind: 'reminder', start: t => ({ title: t, later: true }) },
+  { id: 'calendar', label: 'Calendar', icon: 'forecast', color: 'var(--c-reminders)', kind: 'reminder', start: t => ({ title: t, later: true }) },
+  { id: 'tickler', label: 'Tickler', icon: 'repeat', color: 'var(--c-ticklers)', kind: 'reminder', start: t => ({ title: t, ...TICKLER, later: true }) },
   { id: 'project', label: 'Project', icon: 'project', color: 'var(--c-projects)', kind: 'project', start: t => ({ action: t }), into: () => inOrder('project'), fresh: 'New project…' },
   { id: 'someday', label: 'Someday', icon: 'someday', color: 'var(--c-someday)', kind: 'reminder', start: t => ({ title: t, date: '' }) },
   { id: 'study', label: 'Delegate', icon: 'stack', color: 'var(--c-research)', kind: 'study', start: t => ({ title: t }) },
@@ -2390,28 +2443,29 @@ function WorkView() {
 /* ==== The window: Capture ==== */
 /* The one window over the page at a time (ui.window), a tool rather than a page: × in its header, its buttons in its
    foot. It takes the keyboard (an [autofocus] box, a phone's keyboard rising too: typing is the point there) and
-   hands it back to its opener as it closes; Esc, a phone's Back or a press on the dim page around it closes it, Enter
-   is its done (see the keys). */
+   hands it back to its opener as it closes; Esc, a phone's Back or a press on the dim page around it closes it (close),
+   Enter is its done (see the keys). */
 const closeWindow = () => setUI({ window: null });
-function Window({ title, done, foot, children }) {
+function Window({ title, done, close, foot, children }) {
   const box = useRef(null), body = useRef(null);
-  useLayer(true, closeWindow, done);
+  useLayer(true, close, done);
   useInSight(box, body);
   useEffect(() => {
     const from = document.activeElement;
     takeKeyboard(box.current);
     return () => { if (from.isConnected) from.focus({ preventScroll: true }); };
   }, []);
-  return html`<div class="scrim" onMouseDown=${e => { if (e.target === e.currentTarget) closeWindow(); }}>
+  return html`<div class="scrim" onMouseDown=${e => { if (e.target === e.currentTarget) close(); }}>
     <div class="modal" role="dialog" aria-modal="true" aria-label=${title} tabindex="-1" ref=${box}>
-      <header class="modal-h"><h2>${title}</h2><button class="icon-btn" aria-label="Close" data-tip="Close" onClick=${closeWindow}><${Icon} name="x" /></button></header>
+      <header class="modal-h"><h2>${title}</h2><button class="icon-btn" aria-label="Close" data-tip="Close" onClick=${close}><${Icon} name="x" /></button></header>
       <div class="modal-b" ref=${body}>${children}</div>
       <footer class="modal-f">${foot}</footer>
     </div>
   </div>`;
 }
 /* Capture (C, a phone's round button, the installed app's Capture, a share: see the start): what's typed goes to the
-   Inbox, a line an item. text: what it starts with. Its buttons: Cancel, then Add to Inbox. */
+   Inbox, a line an item. text: what it starts with. Its buttons: Cancel, then Add to Inbox. Closed with words in it,
+   they're notSaved. */
 const capture = text => setUI({ window: { Body: Capture, text } });
 function Capture({ text = '' }) {
   const [v, setV] = useState(text);
@@ -2421,7 +2475,8 @@ function Capture({ text = '' }) {
     closeWindow();
     toast(n === 1 ? 'Added to Inbox' : `${n} items added to Inbox`);
   };
-  return html`<${Window} title="Capture" done=${add} foot=${html`<span class="spacer"></span><button class="btn ghost" onClick=${closeWindow}>Cancel</button><button class="btn primary" onClick=${add} disabled=${!v.trim()}>Add to Inbox</button>`}>
+  const close = () => { closeWindow(); if (v.trim()) notSaved(add); };
+  return html`<${Window} title="Capture" done=${add} close=${close} foot=${html`<span class="spacer"></span><button class="btn ghost" onClick=${close}>Cancel</button><button class="btn primary" onClick=${add} disabled=${!v.trim()}>Add to Inbox</button>`}>
     <${AutoTextarea} class="field" rows="4" value=${v} autofocus placeholder="What’s on your mind?" aria-label="Capture to Inbox" onInput=${e => setV(e.target.value)} />
   <//>`;
 }
@@ -2491,7 +2546,7 @@ const VIEWS = { today: TodayView, inbox: InboxView, work: WorkView, reminders: R
   ticklers: () => {
     const list = all('reminder').filter(isRepeating).sort(byDue), tasks = useTaskRows(r => fmtDay(r.date)), adding = newOpen('reminder');
     return html`<div class="page">
-      <${PageHeader} nav="ticklers"><${AddButton} label="New tickler" onClick=${() => openThing({ kind: 'reminder', repeat: { type: 'weekly' } })} /><//>
+      <${PageHeader} nav="ticklers"><${AddButton} label="New tickler" onClick=${() => openThing({ kind: 'reminder', ...TICKLER })} /><//>
       ${adding && html`<${NewThing} />`}
       ${list.length ? html`<${Block} data-zone>${tasks(list)}<//>` : !adding && html`<p class="empty">Nothing repeats.</p>`}
     </div>`;
@@ -2574,7 +2629,11 @@ document.addEventListener('visibilitychange', () => {
   if (store.unpushed) syncNow();
   localStorage.setItem('sybil.work', JSON.stringify(route.view === 'work' ? route.kept : null));
 });
-addEventListener('online', () => { unwatch(); watch(); });
+addEventListener('online', () => { unwatch(); watch(); refresh(); });
+addEventListener('offline', refresh);
+/* Leaving with changes Dropbox hasn't had yet asks first, in the browser's own words, as Google Keep does (the user's
+   ask, 2026-11-20). */
+addEventListener('beforeunload', e => { if (auth && store.unpushed) e.preventDefault(); });
 
 /* Inter comes in parts by script (Google's subsets), each fetched the first time a page shows one of its letters, and
    that page then drew its words late (Ticklers' and Research's ă, ș, ț): every part the lists need is fetched

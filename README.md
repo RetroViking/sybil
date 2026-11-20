@@ -34,7 +34,8 @@ SIByL's app folder in Dropbox holds three things, each with one writer, so anoth
 ## Capture from elsewhere
 
 `sybil-add` (POSIX sh and curl) captures a line: `sybil-add "Call the plumber"`. It queues the capture, sends it to
-`inbox/` and retries every minute while there's no network. Put it on your `PATH`, and its keys in
+`inbox/` and retries every minute while there's no network. Put it on your `PATH` (the one your window manager
+starts with, for a key binding: a directory only an interactive shell's rc file adds isn't on it), and its keys in
 `${XDG_CONFIG_HOME:-~/.config}/sybil-add` (mode 600):
 
 ```sh
@@ -107,9 +108,9 @@ SIByL is my system for making my life as easy, painless and pleasant as possible
 | Enter | Done, in a window or a thing open in place, wherever you are in it (Space presses the button you're on) |
 | Ctrl + Enter | Done, even in a box where Enter types |
 | Backspace | Back: the Sweep's Back, else the page you came from |
-| Esc | Close what's on top (a thing open in place drops its changes), or stop editing; else let go of the box; Decide, in the Sweep |
+| Esc | Close what's on top (a thing open in place drops its changes, Undo keeping them), or stop editing; else let go of the box; Decide, in the Sweep |
 | Space | OK in the Sweep, its choices too (on a button you Tabbed to, that button) |
-| N, D, P, S, E | The Sweep's choices, their letter underlined: Next, Defer, Project, Someday, Delegate |
+| N, C, T, P, S, D | The Sweep's choices, their letter underlined: Next, Calendar, Tickler, Project, Someday, Delegate |
 
 A browser's or phone's Back does what Backspace does, closing first what's open on top (a thing open in place keeps
 its changes); it leaves SIByL only where there's nothing to go back to.
