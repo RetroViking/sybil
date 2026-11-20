@@ -1,0 +1,30 @@
+#!/bin/sh
+# sybil-add: captures to SIByL's Inbox from anywhere: sybil-add "Call the plumber". With no words it sends what's
+# still queued. A capture is first a file of its own in ~/.local/share/sybil-add, named by the time in nanoseconds
+# (so captures keep their order), then sent to inbox/ in SIByL's Dropbox folder, where SIByL makes it Inbox items, a
+# line an item; each file is deleted once it has gone. Sending one twice does no harm (the same name overwrites it,
+# and SIByL makes each capture once), so two copies of the script can run at once. With no network it tries again
+# every minute; what's still queued at shutdown goes with the next capture. Its keys, in ~/.config/sybil-add (mode
+# 600): DROPBOX_APP_KEY=... and DROPBOX_REFRESH_TOKEN=... (see README).
+queue=${XDG_DATA_HOME:-$HOME/.local/share}/sybil-add
+mkdir -p "$queue"
+[ "$*" ] && printf '%s\n' "$*" > "$queue/$(date +%s%N)"
+. "${XDG_CONFIG_HOME:-$HOME/.config}/sybil-add"
+
+# Returns curl's status where it fails: 22 is Dropbox refusing, anything else no network.
+send() {
+	token=$(curl -sf https://api.dropboxapi.com/oauth2/token -d grant_type=refresh_token \
+		-d "refresh_token=$DROPBOX_REFRESH_TOKEN" -d "client_id=$DROPBOX_APP_KEY") || return
+	token=$(printf '%s' "$token" | sed -n 's/.*"access_token": *"\([^"]*\)".*/\1/p')
+	for f in "$queue"/*; do
+		[ -e "$f" ] || continue
+		# Gone meanwhile: another copy of the script sent it.
+		curl -sf -o /dev/null https://content.dropboxapi.com/2/files/upload \
+			-H "Authorization: Bearer $token" -H 'Content-Type: application/octet-stream' \
+			-H "Dropbox-API-Arg: {\"path\": \"/inbox/${f##*/}\", \"mode\": \"overwrite\", \"mute\": true}" \
+			--data-binary "@$f" || { s=$?; [ -e "$f" ] && return $s; }
+		rm -f "$f"
+	done
+}
+# Refused (a key taken back), it stops: the captures wait in the queue.
+until send; do [ $? = 22 ] && exit 1; sleep 60; done

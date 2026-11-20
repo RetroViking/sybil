@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<!-- SIByL's icon: the Sweep's broom (index.html's BROOM) on the page's black, within the middle 80% a phone's mask
+     keeps. app-192.png and app-512.png are this, drawn: rsvg-convert -w 512 app.svg -o app-512.png -->
+<defs><linearGradient id="art-work" gradientUnits="userSpaceOnUse" x1="0" y1="-27" x2="0" y2="1"><stop offset="0" stop-color="#c690fd"/><stop offset="1" stop-color="#b276f8"/></linearGradient></defs>
+<rect width="512" height="512"/>
+<g transform="translate(246.49 381.49) scale(9.4731)"><path d="M-0.61 -17.5L-2.35 -23.92A2.43 2.43 0 1 1 2.35 -23.92L0.61 -17.5ZM-7.58 -12.28V-12.48A7.58 6.8 0 0 1 7.58 -12.48V-12.28ZM2.35 -7.8V0H4.98ZM-10.74 -3.1a0.75 0.75 0 1 0 1.5 0a0.75 0.75 0 1 0 -1.5 0M-12.07 0a0.75 0.75 0 1 0 1.5 0a0.75 0.75 0 1 0 -1.5 0M-9.03 0a0.75 0.75 0 1 0 1.5 0a0.75 0.75 0 1 0 -1.5 0M14.67 -6.2a0.75 0.75 0 1 0 1.5 0a0.75 0.75 0 1 0 -1.5 0M17.78 -6.2a0.75 0.75 0 1 0 1.5 0a0.75 0.75 0 1 0 -1.5 0M13.1 -3.11a0.75 0.75 0 1 0 1.5 0a0.75 0.75 0 1 0 -1.5 0M16.15 -3.11a0.75 0.75 0 1 0 1.5 0a0.75 0.75 0 1 0 -1.5 0M14.73 0a0.75 0.75 0 1 0 1.5 0a0.75 0.75 0 1 0 -1.5 0" fill="url(#art-work)"/><path d="M-6.94 -12.28Q-6.94 -6.14 -5.48 0H11.1M6.84 -12.28Q7.4 -6.14 10.3 0" fill="none" stroke="url(#art-work)" stroke-width="1.48" stroke-linecap="round" stroke-linejoin="round"/></g>
+</svg>
