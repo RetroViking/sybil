@@ -172,7 +172,7 @@ public class Capture extends Activity {
     byte[] secret = new byte[32];
     new SecureRandom().nextBytes(secret);
     String verifier = b64(secret);
-    Send.auth(this).edit().putString("verifier", verifier).apply();
+    Send.auth(this).edit().putString("verifier", verifier).commit();
     String challenge;
     try { challenge = b64(MessageDigest.getInstance("SHA-256").digest(verifier.getBytes(US_ASCII))); }
     catch (NoSuchAlgorithmException e) { throw new IllegalStateException(e); }

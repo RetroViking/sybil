@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- SIByL's Capture for a phone (see README.md, Capture from a phone): Capture opens over the lock screen too, as a
-     camera does (showWhenLocked: all it can do is add to the Inbox); Send waits for a network and survives a restart
-     (RECEIVE_BOOT_COMPLETED keeps its job); CaptureTile opens Capture from Quick Settings. -->
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="sybil.capture" android:versionCode="1" android:versionName="1">
+     camera does (showWhenLocked: all it can do is add to the Inbox); Send waits for a network (a job asking for one
+     needs ACCESS_NETWORK_STATE from Android 14 on: without it, scheduling threw, the app closing as it connected) and
+     survives a restart (RECEIVE_BOOT_COMPLETED keeps its job); CaptureTile opens Capture from Quick Settings. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="sybil.capture" android:versionCode="2" android:versionName="2">
   <uses-sdk android:minSdkVersion="29" android:targetSdkVersion="34" />
   <uses-permission android:name="android.permission.INTERNET" />
+  <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
   <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
   <application android:label="Capture" android:icon="@mipmap/icon" android:allowBackup="false">
     <activity android:name=".Capture" android:exported="true" android:theme="@style/Capture" android:showWhenLocked="true"
