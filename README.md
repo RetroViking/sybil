@@ -61,6 +61,21 @@ Its `refresh_token` is the one. A capture key in dwm, as an example (`config.h`)
 { MODKEY, XK_x, spawn, SHCMD("st -n floatterm -g 60x1 -e sh -c 'read -r input; [ \"$input\" ] && setsid -f sybil-add \"$input\"'") },
 ```
 
+## Capture from a phone
+
+`capture.apk` (Android 10 and later; its source in `capture/`) is `sybil-add` for a phone: a box with the keyboard
+up, over the lock screen too, with no PIN, as a camera opens there (all it can do is add to the Inbox). Enter sends a
+line and empties the box for the next; Enter on an empty box, Back or a tap around it closes it, sending what's still
+typed. Each line waits on the phone until there's a network, then goes to `inbox/` as `sybil-add`'s do; it's ticked
+once it has. Open it from its icon, a lock screen shortcut, or its Quick Settings tile (Capture).
+
+The first time, Connect Dropbox: Allow, copy the code Dropbox shows, paste it in the box, Enter.
+
+To build your own, put your app key in `capture/src/sybil/capture/Send.java` (`KEY`) and run `capture/build.sh`: it
+needs a JDK and Google's build tools and Android 15 platform (two zips from `dl.google.com/android/repository/`,
+unpacked as `build-tools/<version>/` and `platforms/android-35/` under `$ANDROID_HOME`). Its signing key is made on
+the first build; keep it, as an update must be signed with the same one.
+
 ## The research routine
 
 Research's answers come from a Claude Code routine, run on your Claude plan while you sleep:

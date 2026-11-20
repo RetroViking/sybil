@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <!-- A window over what's showing, dimmed as SIByL's Capture dims the page (its .scrim), opening at once. -->
+  <style name="Capture" parent="@android:style/Theme.Material.NoActionBar">
+    <item name="android:windowIsTranslucent">true</item>
+    <item name="android:windowBackground">@android:color/transparent</item>
+    <item name="android:backgroundDimEnabled">true</item>
+    <item name="android:backgroundDimAmount">0.55</item>
+    <item name="android:windowAnimationStyle">@null</item>
+    <item name="android:colorAccent">#be84fc</item>
+    <item name="android:colorControlActivated">#be84fc</item>
+  </style>
+  <!-- Capture's mark, index.html's TRAY_THIN with its plus (icons/capture.svg), in a 28 box: the tile's and the
+       icon's. -->
+  <string name="tray" translatable="false">M21.37 3C24.06 3 24.03 4.14 24.46 6.8L26 16.54L26 21.53C26 24.12 25.26 24.86 22.67 24.86L5.33 24.86C2.74 24.86 2 24.12 2 21.53L2 16.54L3.54 6.8C3.97 4.14 3.94 3 6.63 3L21.37 3ZM20.77 4.72C22.24 4.72 22.21 5.35 22.44 6.8L23.39 13.34C23.55 14.43 23.07 14.76 21.96 14.76L20.77 14.76C19.57 14.76 19.23 15.11 19.23 16.31L19.23 17.61C19.23 18.75 18.93 19.1 17.8 19.1L10.2 19.1C9.07 19.1 8.77 18.75 8.77 17.61L8.77 16.31C8.77 15.11 8.43 14.76 7.23 14.76L6.04 14.76C4.93 14.76 4.45 14.43 4.61 13.34L5.56 6.8C5.79 5.35 5.76 4.72 7.23 4.72L20.77 4.72Z</string>
+  <string name="plus" translatable="false">M14 7.03v8.74M9.63 11.4h8.74</string>
+</resources>
