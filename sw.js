@@ -1,7 +1,6 @@
-/* SIByL offline (see index.html): a page opened, and the manifest (the installed app's name, icons and Capture), come
-   from the network, their last copy when there's none, whatever the query (the installed app's Capture opens offline
-   too); the rest of the site (the library, Inter, the icons) from the cache, kept as first fetched, so a file changed
-   takes a new name. Dropbox's calls aren't the site's: they pass. */
+/* SIByL offline (see index.html): a page opened, and the manifest (the installed app's name and icons), come from the
+   network, their last copy (by path) when there's none; the rest of the site (the library, Inter, the icons) from the
+   cache, kept as first fetched, so a file changed takes a new name. Dropbox's calls aren't the site's: they pass. */
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', e => e.waitUntil(clients.claim()));
 self.addEventListener('fetch', e => {

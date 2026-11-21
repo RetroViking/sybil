@@ -9,7 +9,7 @@
    Submit. On its Settings tab, add your site's address as a Redirect URI, and copy the App key.
 3. In `index.html`, put that key in `const DROPBOX = '…';` and commit.
 4. Open your site and, in Settings, Connect Dropbox. On a phone, open it in Chrome, Install app, and connect there
-   too. The installed app has Capture as its shortcut (hold its icon).
+   too; to capture from anywhere on it, see Capture from a phone.
 
 Each device keeps its own copy and works offline; Dropbox is where the copies meet.
 

@@ -1511,11 +1511,10 @@ const Trash = ({ label, tip = 'Delete', cls, onClick }) => html`<button class=${
 /* On a press, keeps the cursor in the field being typed in. */
 const holdFocus = e => e.preventDefault();
 
-/* A box that grows with its words, measured again as its width changes too: measured while the page was still narrow
-   (Capture as the installed app starts cold), an empty box kept its placeholder's wrapped height, and the window was
-   twice its size or more. line: one line of words that wraps, where Enter is Done (a phone's key says so) and a pasted
-   break becomes a space. Measuring resets it to its rows for a moment, which would pull up a page scrolled to its end:
-   the scroll is kept. */
+/* A box that grows with its words, measured again as its width changes too (a phone turned, a window resized): measured
+   at the old width, it kept that width's wrapped height. line: one line of words that wraps, where Enter is Done (a
+   phone's key says so) and a pasted break becomes a space. Measuring resets it to its rows for a moment, which would
+   pull up a page scrolled to its end: the scroll is kept. */
 function AutoTextarea({ value, onInput, inputRef, line, ...rest }) {
   const own = useRef(null);
   const ref = inputRef || own;
@@ -2462,8 +2461,8 @@ function Window({ title, done, close, foot, children }) {
     </div>
   </div>`;
 }
-/* Capture (C, a phone's round button, the installed app's Capture: see the start): what's typed goes to the Inbox, a
-   line an item. Its buttons: Cancel, then Add to Inbox. Closed with words in it, they're notSaved. */
+/* Capture (C, a phone's round button): what's typed goes to the Inbox, a line an item. Its buttons: Cancel, then Add to
+   Inbox. Closed with words in it, they're notSaved. */
 const capture = () => setUI({ window: { Body: Capture } });
 function Capture() {
   const [v, setV] = useState('');
@@ -2639,12 +2638,11 @@ addEventListener('beforeunload', e => { if (auth && store.unpushed) e.preventDef
 document.fonts.load('1em Inter', JSON.stringify(store.items));
 navigator.storage.persist();
 /* What the address brings, read once as SIByL starts and cleared (before hold adds its history entry): Dropbox's
-   sign-in coming back (code); the installed app's Capture (its icon held: capture). A share from another app is the
-   phone's Capture app's (capture.apk). */
-const asked = new URLSearchParams(location.search);
+   sign-in coming back. A phone's ways to capture from outside (its home screen, lock screen, share sheet) are
+   capture.apk's. */
+const code = new URLSearchParams(location.search).get('code');
 if (location.search) history.replaceState(null, '', home);
-if (asked.has('code')) signedIn(asked.get('code'));
-if (asked.has('capture')) capture();
+if (code) signedIn(code);
 /* Offline (see sw.js); none over plain http. */
 navigator.serviceWorker?.register('sw.js');
 refresh();
