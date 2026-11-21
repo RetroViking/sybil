@@ -59,8 +59,8 @@
   --accent-line: #543a9d;
   --accent-soft: #3d304d;
   --bad: #ff5a4f;
-  /* A next action's circle and day on its deadline (OmniFocus's, today.png, measured), and past it: the user's red
-     (c.png, measured), as OmniFocus's orange read faint to them. */
+  /* A task's circle and day on its day (a next action's: its deadline; OmniFocus's yellow, today.png, measured), and
+     past it: the user's red (c.png, measured), as OmniFocus's orange read faint to them. */
   --due: #ffcb00;
   --overdue: #ec4d62;
   --shadow-1: 0 1px 2px rgba(0, 0, 0, .4);
@@ -127,7 +127,7 @@ button { cursor: pointer; border: 0; background: none; padding: 0; }
   display: flex; flex-direction: column;
   padding: 0 0 8px;
   min-height: 0;
-  --cell: clamp(56px, calc((100vh - 120px) / 7), 70px);
+  --cell: clamp(56px, calc((100vh - 100px) / 7), 70px);
 }
 .nav { display: flex; flex-direction: column; }
 .nav-item {
@@ -136,7 +136,7 @@ button { cursor: pointer; border: 0; background: none; padding: 0; }
 }
 /* Every hover look is a mouse's (:where adds no weight): a phone keeps :hover on what it last tapped, so a button
    stayed lit after a tap, and so did whatever button took its place. */
-:where(:root:not(.touch)) :is(.nav-item, .sync:not(.bad)):hover { background: var(--hover); color: var(--fg-2); }
+:where(:root:not(.touch)) .nav-item:hover { background: var(--hover); color: var(--fg-2); }
 /* Where you are, as OmniFocus 4 marks it: the name in its section's colour (--t) and a bar at the rail's inner edge. */
 .nav-item.on { color: var(--t); }
 .nav-item.on::after { content: ""; position: absolute; right: 0; top: 16%; bottom: 16%; width: 4px; border-radius: 3px 0 0 3px; background: var(--t); }
@@ -147,9 +147,9 @@ button { cursor: pointer; border: 0; background: none; padding: 0; }
 .nav-flag { position: absolute; top: -2px; right: -6px; width: 9px; height: 9px; border-radius: 50%; background: var(--t); box-shadow: 0 0 0 2px var(--rail); }
 .side-foot { margin-top: auto; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 2px; padding-top: 12px; }
 .side-foot .icon-btn { height: 28px; border-radius: var(--r-ctl); }
-/* How the copy stands with Dropbox (see SyncState): over History and Settings, its cloud over its word as a section's
-   are; in a phone's top bar, at the other end, beside it. Red, it isn't synced. */
-.sync { flex-basis: 100%; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px 0; color: var(--fg-3); }
+/* How the copy stands with Dropbox (see SyncState): over History and Settings; in a phone's top bar, at its other end.
+   Red, it isn't synced. */
+.sync { flex-basis: 100%; text-align: center; padding: 6px 0; color: var(--fg-3); }
 .sync.bad { color: var(--bad); }
 /* One fixed label above everything, so no pane's clipping cuts it off. */
 .tip {
@@ -187,7 +187,7 @@ button { cursor: pointer; border: 0; background: none; padding: 0; }
   .nav-label { display: none; }
   .side-foot { display: none; }
   .topbar { grid-area: top; position: relative; z-index: 16; display: flex; justify-content: flex-end; gap: 6px; padding: 6px 10px; border-bottom: 1px solid var(--line); }
-  .topbar .sync { flex: none; flex-direction: row; gap: 6px; margin-right: auto; padding: 0 4px; font-size: 12.5px; }
+  .topbar .sync { flex: none; align-self: center; margin-right: auto; padding: 0 4px; font-size: 12.5px; }
   .fab {
     position: fixed; right: 18px; bottom: calc(18px + var(--bar, 0px) + var(--tabs, 0px) + env(safe-area-inset-bottom, 0px)); z-index: 30;
     width: 54px; height: 54px; border-radius: 50%; border: 1px solid;
@@ -234,7 +234,7 @@ button { cursor: pointer; border: 0; background: none; padding: 0; }
 .btn.primary:disabled { cursor: default; background: var(--btn-fill); border-color: var(--btn-line); color: var(--fg-3); text-shadow: none; box-shadow: inset 0 1px 0 var(--btn-hi); }
 /* Done: one 32px circle everywhere, always at a row's right, centred on the first line of what it ticks off (a
    task's is two: see .rem-row) and no taller, so no row grows for it. Its side margins give the circles down a pane
-   one centre, with the add row's plus. A late next action's is its day's colour (see .rem-when). Where a
+   one centre, with the add row's plus. A late task's is its day's colour (see .rem-when). Where a
    circle would be, an open project's hold and an open Someday task's Make it a project are that ring, their mark
    always showing (.ring-btn); on hold, in Someday's colour, where the project then is. */
 .done-btn, .ring-btn {
@@ -387,17 +387,17 @@ body { --room: calc(var(--row-y) - (32px - 1lh) / 2); }
 /* Under the name, a line each in turn (see .note). */
 .rem-fold, .rem-proj { grid-column: 1; margin-top: 1px; }
 .rem-fold { min-height: 1lh; display: flex; align-items: center; font-size: 13px; color: var(--fg-3); }
-/* A project's next action names its project, which a click opens in its place. */
+/* A project's next action names its project: words, not a link, as a click anywhere on the row opens the project
+   (the user, 2026-11-21: two buttons for one thing). */
 .rem-proj { justify-self: start; }
 .rem-when { display: block; font-size: 13px; font-variant-numeric: tabular-nums; }
-/* A late task's day (see dueOf), in its circle's colour where that has one: a next action on its deadline OmniFocus's
-   yellow, past it its orange; any other past its day red. */
+/* A late task's day (see dueOf), in its circle's colour: on its day yellow, past it red. */
 .today { --late: var(--due); }
 .overdue { --late: var(--overdue); }
-.missed { --late: var(--bad); }
-.rem-when:is(.today, .overdue, .missed) { color: var(--late); font-weight: calc(550 - var(--thin)); }
+.rem-when:is(.today, .overdue) { color: var(--late); font-weight: calc(550 - var(--thin)); }
 .rem-row > .done-btn { grid-area: 1 / 3 / 3; align-self: start; margin-top: calc(.5lh + (1lh - 32px) / 2); }
-.li-link { color: var(--fg-3); font-size: 13px; text-align: left; transition: color .15s; }
+.li-link, .rem-proj { color: var(--fg-3); font-size: 13px; text-align: left; }
+.li-link { transition: color .15s; }
 :where(:root:not(.touch)) .li-link:hover { color: var(--accent); }
 .li-link .chev { vertical-align: -2px; margin-left: 2px; }
 /* A row opens at a click anywhere on it; its name is a button too, for the keyboard. */
@@ -851,7 +851,7 @@ function failed() {
   stuck = true;
   refresh();
   clearTimeout(again);
-  again = setTimeout(() => document.hidden || resync(), 60000);
+  again = setTimeout(() => document.hidden || (watching ? syncNow() : watch()), 60000);
 }
 const syncNow = () => auth && sync().catch(failed);
 /* While SIByL is in view: synced, then Dropbox is asked to answer once anything in the folder changes (a device's
@@ -871,8 +871,6 @@ async function watch() {
   if (watching === me) watching = null;
 }
 const unwatch = () => { watching?.abort(); watching = null; };
-/* A sync now, the watch begun again if it had stopped. */
-const resync = () => watching ? syncNow() : watch();
 /* Signing in, once on each device (Settings' Connect Dropbox): Dropbox's page, which sends SIByL back here with a code
    (see the start) that the tokens are given for, with PKCE: to show it's the page that asked, a secret made for the
    occasion (sybil.verifier), not one of the app's. Disconnecting forgets the tokens, and Dropbox does too. */
@@ -1231,8 +1229,6 @@ const ICONS = {
   clockDisc: `<g transform="scale(${24 / 28})"><circle cx="14" cy="14" r="12" fill="currentColor" stroke="none"/>${CLOCK_HANDS}</g>`,
   /* A task's context, as OmniFocus marks it: where it's seen, on Next. */
   eye: '<path d="M2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 19.88 0 1 1 0 0 1 0 .7 10.75 10.75 0 0 1-19.88 0"/><circle cx="12" cy="12" r="3"/>',
-  /* Dropbox, where the copies meet (see SyncState). */
-  cloud: '<path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>',
   /* A project on hold. */
   pause: '<path d="M9 6v12M15 6v12"/>',
   /* A source, opening elsewhere. */
@@ -1504,8 +1500,10 @@ function startDrag(e, onDrop) {
 const AddButton = ({ label, onClick }) => html`<button class="add-btn" aria-label=${label} data-tip=${label} onClick=${onClick}><${Icon} name="plus" /></button>`;
 /* due: see dueOf. */
 const DoneButton = ({ onClick, label, due }) => html`<button class=${cx('done-btn', due)} aria-label=${label} onClick=${onClick}><${Icon} name="check" size=${15} /></button>`;
-/* How late a task is: a next action on its deadline (today) or past it (overdue); any other past its day (missed). */
-const dueOf = r => r.date && (r.date < todayISO() ? (r.context ? 'overdue' : 'missed') : r.context && r.date === todayISO() && 'today');
+/* How late a task is, by its day (a next action's: its deadline): on it (today) or past it (overdue), every task alike,
+   so the eye tells what must be done today from what can wait (the user's ask, 2026-11-21: next actions' alone had
+   it, a missed Calendar task's day red, its circle grey). */
+const dueOf = r => r.date && (r.date < todayISO() ? 'overdue' : r.date === todayISO() && 'today');
 /* Deletes go through removeWithUndo, so it asks nothing. A line's trash, a Someday task's (its row is an Inbox
    item's), an open question's, an answered question's (unfolded); a task or project open in place has its Delete
    (DeleteButton). None on another thing's list row, so a slip there can't delete one unnoticed. */
@@ -1916,7 +1914,7 @@ function useTaskRows(day) {
         ${isRepeating(r) && html`<span class="rem-rule"><${Icon} name="repeat" size=${12} />${isLast(r) ? html`<b class="last">Last one</b>` : repeatShort(r.repeat)}</span>`}<br />
         <span class=${cx('rem-when', due)}>${when}</span>
       </div>
-      ${p && html`<button class="li-link rem-proj" onClick=${() => openThing({ id: p.id })}><${Icon} name="project" size=${12} />${p.title}</button>`}
+      ${p && html`<span class="rem-proj"><${Icon} name="project" size=${12} />${p.title}</span>`}
       ${(fold || !p) && html`<div class="rem-fold">${fold}</div>`}
       <${DoneButton} label=${'Done: ' + r.title} due=${due} onClick=${() => completeReminder(r)} />
     </div>${steps.length > 0 && unfolded && html`<ul class="li-steps">${steps.map(({ title, i }) => { const o = tap(r.id + '.' + i); return html`<li class=${cx('li hov drags', o.open && 'open')} onClick=${o.onClick} key=${i} ...${drag(r.id + '/' + i)}>
@@ -2006,13 +2004,14 @@ function Splash({ art, words }) {
 }
 
 /* How this device's copy stands with Dropbox, in words (the user's ask, 2026-11-20: a dot on Settings' gear left them
-   unsure): Synced, or Syncing while it has changes Dropbox hasn't; in red, what keeps them from it: Offline, Not
-   synced (a sync failed: see failed), Signed out (by Dropbox: see signOut). A press syncs at once, or, signed out,
-   goes to Settings to connect again. Nothing while SIByL isn't connected (Disconnect). */
+   unsure), and only words (2026-11-21: a cloud and a hover light made them look pressable): Synced, or Syncing while
+   it has changes Dropbox hasn't; in red, what keeps them from it: Offline, Not synced (a sync failed: it tries again,
+   see failed), Signed out (by Dropbox: see signOut; Settings connects it again). Nothing while SIByL isn't connected
+   (Disconnect). */
 function SyncState() {
   if (auth === null) return null;
   const [word, bad] = auth === false ? ['Signed out', 1] : !navigator.onLine ? ['Offline', 1] : stuck ? ['Not synced', 1] : [store.unpushed ? 'Syncing' : 'Synced'];
-  return html`<button class=${cx('sync', bad && 'bad')} onClick=${() => auth ? resync() : navigate('settings')}><${Icon} name="cloud" size=${16} />${word}</button>`;
+  return html`<span class=${cx('sync', bad && 'bad')}>${word}</span>`;
 }
 /* How it syncs, then History and Settings, pages off the rail (no number key): at the rail's foot or in a phone's top
    bar. */
