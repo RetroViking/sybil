@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <!-- A window over what's showing, dimmed as SIByL's Capture dims the page (its .scrim), opening at once. -->
+  <!-- SIByL's black page, its bars black too, opening at once. Opaque: a see-through window over the lock screen had
+       the phone ask for its PIN first (see Capture). -->
   <style name="Capture" parent="@android:style/Theme.Material.NoActionBar">
-    <item name="android:windowIsTranslucent">true</item>
-    <item name="android:windowBackground">@android:color/transparent</item>
-    <item name="android:backgroundDimEnabled">true</item>
-    <item name="android:backgroundDimAmount">0.55</item>
+    <item name="android:windowBackground">@android:color/black</item>
+    <item name="android:statusBarColor">@android:color/black</item>
+    <item name="android:navigationBarColor">@android:color/black</item>
     <item name="android:windowAnimationStyle">@null</item>
     <item name="android:colorAccent">#be84fc</item>
     <item name="android:colorControlActivated">#be84fc</item>

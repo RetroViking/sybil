@@ -2,6 +2,8 @@ package sybil.capture;
 
 import android.app.Activity;
 import android.app.KeyguardManager;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Intent;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
@@ -16,7 +18,6 @@ import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
-import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -28,19 +29,21 @@ import java.security.SecureRandom;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
 import static android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
 import static java.nio.charset.StandardCharsets.US_ASCII;
 
-/* SIByL's Capture on a phone: a box at the foot of the screen over whatever shows, the lock screen too (no PIN: all it
-   can do is add to the Inbox), the keyboard up at once. Enter sends what's typed to the Inbox (see Send) and empties
-   the box for the next; Enter with nothing typed, Back or a tap around it closes it. Left any way at all, what's still
-   typed goes too, and it closes, so it opens afresh and is never left over the lock screen. What went this time shows
-   over the box, the last five, each ticked at its right once it has reached Dropbox. Not connected (yet, or Dropbox
-   took the key back), it connects first: Connect Dropbox opens Dropbox's page, whose code is pasted in the box. */
+/* SIByL's Capture on a phone: a black page with the box at its top, the keyboard up at once, over the lock screen too
+   (no PIN: all it can do is add to the Inbox). It's opaque, as a calculator's is: a see-through one let the lock screen
+   show and the phone asked for its PIN first; and the box is at the top so the keyboard, rising or put away, never moves
+   it. Enter sends what's typed to the Inbox (see Send) and empties the box for the next; Enter with nothing typed, Back
+   or a tap below closes it. Left any way at all, what's still typed goes too, and it closes, so it opens afresh and is
+   never left over the lock screen. What went this time shows under the box, the last five, newest first, each ticked
+   at its right once it has reached Dropbox. Not connected (yet, or Dropbox took the key back), it still captures (all
+   waits on the phone) and a line under the box connects it: Connect Dropbox opens Dropbox's page, then Paste Dropbox's
+   code takes the code copied there. */
 public class Capture extends Activity {
-  /* SIByL's colours (index.html's --fg, --fg-2, --fg-3, --accent, --surface, --tile). */
-  private static final int FG = 0xffeff0f2, FG2 = 0xffa7abb2, FG3 = 0xff767a82, ACCENT = 0xffbe84fc, SURFACE = 0xff232326, TILE = 0xff29292c;
+  /* SIByL's colours (index.html's --fg, --fg-2, --fg-3, --accent, --tile). */
+  private static final int FG = 0xffeff0f2, FG2 = 0xffa7abb2, FG3 = 0xff767a82, ACCENT = 0xffbe84fc, TILE = 0xff29292c;
   private final Handler later = new Handler(Looper.getMainLooper());
   /* What went this time: each one's tick, and its file in the queue (gone once it has reached Dropbox). */
   private final Map<TextView, File> mine = new LinkedHashMap<>();
@@ -50,29 +53,17 @@ public class Capture extends Activity {
 
   @Override protected void onCreate(Bundle state) {
     super.onCreate(state);
-    FrameLayout page = new FrameLayout(this);
+    LinearLayout page = new LinearLayout(this);
+    page.setOrientation(LinearLayout.VERTICAL);
+    page.setPadding(dp(16), dp(16), dp(16), dp(16));
     page.setOnClickListener(v -> finish());
-    LinearLayout panel = new LinearLayout(this);
-    panel.setOrientation(LinearLayout.VERTICAL);
-    panel.setPadding(dp(16), dp(12), dp(16), dp(16));
-    panel.setClickable(true);
-    GradientDrawable face = new GradientDrawable();
-    face.setColor(SURFACE);
-    float r = dp(10);
-    face.setCornerRadii(new float[] { r, r, r, r, 0, 0, 0, 0 });
-    panel.setBackground(face);
-    lines = new LinearLayout(this);
-    lines.setOrientation(LinearLayout.VERTICAL);
-    panel.addView(lines);
-    connect = words("Connect Dropbox", ACCENT);
-    connect.setOnClickListener(v -> connect());
-    panel.addView(connect);
     box = new EditText(this);
     box.setSingleLine(true);
     box.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES | InputType.TYPE_TEXT_FLAG_AUTO_CORRECT);
     box.setImeOptions(EditorInfo.IME_ACTION_DONE);
     box.setTextSize(16);
     box.setTextColor(FG);
+    box.setHint("What’s on your mind?");
     box.setHintTextColor(FG3);
     box.setPadding(dp(12), dp(10), dp(12), dp(10));
     GradientDrawable field = new GradientDrawable();
@@ -84,8 +75,17 @@ public class Capture extends Activity {
       if (key == null || key.getAction() == KeyEvent.ACTION_DOWN) enter();
       return true;
     });
-    panel.addView(box);
-    page.addView(panel, new FrameLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT, Gravity.BOTTOM));
+    page.addView(box);
+    connect = words("", ACCENT);
+    connect.setPadding(dp(12), dp(12), dp(12), dp(4));
+    connect.setOnClickListener(v -> { if (Send.auth(this).contains("verifier")) paste(); else connect(); });
+    page.addView(connect);
+    lines = new LinearLayout(this);
+    lines.setOrientation(LinearLayout.VERTICAL);
+    lines.setPadding(0, dp(8), 0, 0);
+    /* A tap on what went is no tap below. */
+    lines.setClickable(true);
+    page.addView(lines);
     setContentView(page);
   }
 
@@ -95,10 +95,10 @@ public class Capture extends Activity {
     later.post(tick);
   }
 
-  /* Capturing, or connecting first. */
+  /* Connected, or the line that connects it, as far as it's got. */
   private void show() {
     connect.setVisibility(Send.connected(this) ? View.GONE : View.VISIBLE);
-    box.setHint(Send.connected(this) ? "What’s on your mind?" : "Dropbox’s code");
+    connect.setText(Send.auth(this).contains("verifier") ? "Paste Dropbox’s code" : "Connect Dropbox");
   }
 
   @Override protected void onPause() {
@@ -108,7 +108,7 @@ public class Capture extends Activity {
 
   @Override protected void onStop() {
     super.onStop();
-    if (Send.connected(this) && !typed().isEmpty()) send(typed());
+    if (!typed().isEmpty()) send(typed());
     finish();
   }
 
@@ -121,10 +121,8 @@ public class Capture extends Activity {
   private String typed() { return box.getText().toString().trim(); }
 
   private void enter() {
-    String text = typed();
-    if (!Send.connected(this)) { if (!text.isEmpty()) exchange(text); }
-    else if (text.isEmpty()) finish();
-    else send(text);
+    if (typed().isEmpty()) finish();
+    else send(typed());
   }
 
   private void send(String text) {
@@ -137,13 +135,13 @@ public class Capture extends Activity {
     TextView tick = words("", ACCENT);
     tick.setGravity(Gravity.END);
     row.addView(tick, new LinearLayout.LayoutParams(dp(40), WRAP_CONTENT));
-    lines.addView(row);
+    lines.addView(row, 0);
     mine.put(tick, f);
     if (lines.getChildCount() > 5) {
-      Iterator<TextView> first = mine.keySet().iterator();
-      first.next();
-      first.remove();
-      lines.removeViewAt(0);
+      Iterator<TextView> oldest = mine.keySet().iterator();
+      oldest.next();
+      oldest.remove();
+      lines.removeViewAt(5);
     }
   }
 
@@ -155,7 +153,7 @@ public class Capture extends Activity {
     }
   };
 
-  /* A line of words over the box, starting where its typed words do. */
+  /* A line of words under the box, starting where its typed words do. */
   private TextView words(String text, int color) {
     TextView t = new TextView(this);
     t.setText(text);
@@ -166,8 +164,8 @@ public class Capture extends Activity {
   }
 
   /* Dropbox's page to allow Capture in, with PKCE as SIByL's own Connect Dropbox (a secret made for the asking, kept
-     until the code comes back: see Send's connect); with no address to come back to, Dropbox shows the code, to paste
-     in the box. Over the lock screen, the phone is unlocked first. */
+     until the code comes back: see Send's connect); with no address to come back to, Dropbox shows the code, to copy
+     and paste here. Over the lock screen, the phone is unlocked first. */
   private void connect() {
     byte[] secret = new byte[32];
     new SecureRandom().nextBytes(secret);
@@ -187,13 +185,16 @@ public class Capture extends Activity {
     });
   }
 
-  /* The code pasted: connected, the box is for capturing. */
-  private void exchange(String code) {
+  /* The code copied from Dropbox's page, from the clipboard (so the box only ever captures): connected, what waits
+     goes (see Send's connect). */
+  private void paste() {
+    ClipData clip = getSystemService(ClipboardManager.class).getPrimaryClip();
+    String code = clip == null || clip.getItemCount() == 0 ? "" : clip.getItemAt(0).coerceToText(this).toString().trim();
+    if (code.isEmpty()) { Toast.makeText(this, "Copy the code Dropbox shows first.", Toast.LENGTH_LONG).show(); return; }
     new Thread(() -> {
-      boolean ok = Send.connect(this, code);
+      String wrong = Send.connect(this, code);
       runOnUiThread(() -> {
-        if (!ok) { Toast.makeText(this, "Dropbox didn’t take that code. Connect Dropbox again.", Toast.LENGTH_LONG).show(); return; }
-        box.setText("");
+        if (wrong != null) Toast.makeText(this, wrong, Toast.LENGTH_LONG).show();
         show();
       });
     }).start();

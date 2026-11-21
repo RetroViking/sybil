@@ -3,7 +3,7 @@
      camera does (showWhenLocked: all it can do is add to the Inbox); Send waits for a network (a job asking for one
      needs ACCESS_NETWORK_STATE from Android 14 on: without it, scheduling threw, the app closing as it connected) and
      survives a restart (RECEIVE_BOOT_COMPLETED keeps its job); CaptureTile opens Capture from Quick Settings. -->
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="sybil.capture" android:versionCode="2" android:versionName="2">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="sybil.capture" android:versionCode="3" android:versionName="3">
   <uses-sdk android:minSdkVersion="29" android:targetSdkVersion="34" />
   <uses-permission android:name="android.permission.INTERNET" />
   <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />

@@ -54,16 +54,20 @@ public class Send extends JobService {
 
   /* The refresh token for Dropbox's code (shown on its page once Allow is pressed) and the secret made for that asking
      (verifier: see Capture's connect), on the phone's storage before anything else (Dropbox gives a code's token once:
-     a crash before an apply reached it lost the token, and the code too); what waits in the queue then goes. False if
-     Dropbox refused. */
-  static boolean connect(Context c, String code) {
+     a crash before an apply reached it lost the token, and the code too); what waits in the queue then goes. Null once
+     connected, else what to say: refused, the asking is over (Connect Dropbox again); Dropbox out of reach, the code
+     can be pasted again. */
+  static String connect(Context c, String code) {
     try {
       String refresh = json(post(TOKEN, FORM, form("code", code, "grant_type", "authorization_code", "client_id", KEY,
         "code_verifier", auth(c).getString("verifier", "")))).getString("refresh_token");
       auth(c).edit().putString("refresh", refresh).remove("verifier").commit();
       schedule(c);
-      return true;
-    } catch (IOException | JSONException e) { return false; }
+      return null;
+    } catch (Refused e) {
+      auth(c).edit().remove("verifier").commit();
+      return "Dropbox didn’t take that code. Connect Dropbox again.";
+    } catch (IOException | JSONException e) { return "Dropbox couldn’t be reached. Paste the code again."; }
   }
 
   @Override public boolean onStartJob(JobParameters job) {
