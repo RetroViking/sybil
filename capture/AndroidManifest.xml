@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- SIByL's Capture for a phone (see README.md, Capture from a phone): Capture opens over the lock screen too, as a
-     camera does (showWhenLocked: all it can do is add to the Inbox); Send waits for a network (a job asking for one
-     needs ACCESS_NETWORK_STATE from Android 14 on: without it, scheduling threw, the app closing as it connected) and
-     survives a restart (RECEIVE_BOOT_COMPLETED keeps its job); CaptureTile opens Capture from Quick Settings. -->
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="sybil.capture" android:versionCode="4" android:versionName="4">
+     camera does (showWhenLocked: all it can do is add to the Inbox), and from other apps' share sheets; Send waits for
+     a network (a job asking for one needs ACCESS_NETWORK_STATE from Android 14 on: without it, scheduling threw, the
+     app closing as it connected) and survives a restart (RECEIVE_BOOT_COMPLETED keeps its job); CaptureTile opens
+     Capture from Quick Settings. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="sybil.capture" android:versionCode="5" android:versionName="5">
   <!-- Targeting Android 13, so the tile may start Capture itself when the phone is unlocked (see CaptureTile). -->
   <uses-sdk android:minSdkVersion="29" android:targetSdkVersion="33" />
   <uses-permission android:name="android.permission.INTERNET" />
@@ -17,6 +18,11 @@
       <intent-filter>
         <action android:name="android.intent.action.MAIN" />
         <category android:name="android.intent.category.LAUNCHER" />
+      </intent-filter>
+      <intent-filter>
+        <action android:name="android.intent.action.SEND" />
+        <category android:name="android.intent.category.DEFAULT" />
+        <data android:mimeType="text/plain" />
       </intent-filter>
     </activity>
     <service android:name=".Send" android:exported="false" android:permission="android.permission.BIND_JOB_SERVICE" />

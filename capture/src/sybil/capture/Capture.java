@@ -29,18 +29,20 @@ import java.security.SecureRandom;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
 import static android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
 import static java.nio.charset.StandardCharsets.US_ASCII;
 
 /* SIByL's Capture on a phone: a black page with the box at its top, the keyboard up at once, over the lock screen too
    (no PIN: all it can do is add to the Inbox). It's opaque, as a calculator's is: a see-through one let the lock screen
-   show and the phone asked for its PIN first; and the box is at the top so the keyboard, rising or put away, never moves
-   it. Enter sends what's typed to the Inbox (see Send) and empties the box for the next; Enter with nothing typed, Back
-   or a tap below closes it. Left any way at all, what's still typed goes too, and it closes, so it opens afresh and is
-   never left over the lock screen. What went this time shows under the box, the last five, newest first, each ticked
-   at its right once it has reached Dropbox. Not connected (yet, or Dropbox took the key back), it still captures (all
-   waits on the phone) and a line under the box connects it: Connect Dropbox opens Dropbox's page, then Paste Dropbox's
-   code takes the code copied there. */
+   show and the phone asked for its PIN first; and the box is at the top so the keyboard, rising or put away, never
+   moves it. Enter sends what's typed to the Inbox (see Send) and empties the box for the next; Enter with nothing
+   typed, Back or a tap below closes it. Left any way at all, what's still typed goes too, and it closes, so it opens
+   afresh and is never left over the lock screen. Something shared to it from another app waits in the box, one line
+   (one item): its subject (a page's title, as Chrome shares one) before its words, unless the words hold it. What went
+   this time shows under the box, the last five, newest first, each ticked at its right once it has reached Dropbox. Not
+   connected (yet, or Dropbox took the key back), it still captures (all waits on the phone) and a line under the box
+   connects it: Connect Dropbox opens Dropbox's page, then Paste Dropbox's code takes the code copied there. */
 public class Capture extends Activity {
   /* SIByL's colours (index.html's --fg, --fg-2, --fg-3, --accent, --tile). */
   private static final int FG = 0xffeff0f2, FG2 = 0xffa7abb2, FG3 = 0xff767a82, ACCENT = 0xffbe84fc, TILE = 0xff29292c;
@@ -76,6 +78,13 @@ public class Capture extends Activity {
       return true;
     });
     page.addView(box);
+    Intent shared = getIntent();
+    if (Intent.ACTION_SEND.equals(shared.getAction())) {
+      String subject = Objects.toString(shared.getCharSequenceExtra(Intent.EXTRA_SUBJECT), "");
+      String text = Objects.toString(shared.getCharSequenceExtra(Intent.EXTRA_TEXT), "");
+      box.setText((text.contains(subject) ? text : subject + " " + text).replaceAll("\\s+", " ").trim());
+      box.setSelection(box.length());
+    }
     connect = words("", ACCENT);
     connect.setPadding(dp(12), dp(12), dp(12), dp(4));
     connect.setOnClickListener(v -> { if (Send.auth(this).contains("verifier")) paste(); else connect(); });

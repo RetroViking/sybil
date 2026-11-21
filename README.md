@@ -9,7 +9,7 @@
    Submit. On its Settings tab, add your site's address as a Redirect URI, and copy the App key.
 3. In `index.html`, put that key in `const DROPBOX = '…';` and commit.
 4. Open your site and, in Settings, Connect Dropbox. On a phone, open it in Chrome, Install app, and connect there
-   too. The installed app has Capture as its shortcut (hold its icon), and it is in Android's share sheet.
+   too. The installed app has Capture as its shortcut (hold its icon).
 
 Each device keeps its own copy and works offline; Dropbox is where the copies meet.
 
@@ -65,10 +65,11 @@ Its `refresh_token` is the one. A capture key in dwm, as an example (`config.h`)
 
 `capture.apk` (Android 10 and later; its source in `capture/`) is `sybil-add` for a phone: a black page with a box at
 its top and the keyboard up, over the lock screen too, with no PIN, from its Quick Settings tile (all it can do is add
-to the Inbox; a lock screen shortcut still asks for the PIN on Samsung's phones). Enter sends a line and empties the box for the next; Enter on an empty box, Back or a tap below
-closes it, sending what's still typed. Each line is kept on the phone until Dropbox has it (offline, signed out, across
-a restart), then goes to `inbox/` as `sybil-add`'s do, at the time it was captured; it's ticked once it has. Open it
-from its icon or its tile (Capture).
+to the Inbox; a lock screen shortcut still asks for the PIN on Samsung's phones). Enter sends a line and empties the box
+for the next; Enter on an empty box, Back or a tap below closes it, sending what's still typed. Each line is kept on the
+phone until Dropbox has it (offline, signed out, across a restart), then goes to `inbox/` as `sybil-add`'s do, at the
+time it was captured; it's ticked once it has. Open it from its icon or its tile (Capture). It's in Android's share
+sheet too: what's shared waits in its box as one line (a page's title and link, as Chrome shares one).
 
 To connect it (once, and again if Dropbox ever signs it out; it captures all the same meanwhile): Connect Dropbox,
 Allow, copy the code Dropbox shows, then Paste Dropbox's code.

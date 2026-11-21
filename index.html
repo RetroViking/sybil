@@ -2462,12 +2462,11 @@ function Window({ title, done, close, foot, children }) {
     </div>
   </div>`;
 }
-/* Capture (C, a phone's round button, the installed app's Capture, a share: see the start): what's typed goes to the
-   Inbox, a line an item. text: what it starts with. Its buttons: Cancel, then Add to Inbox. Closed with words in it,
-   they're notSaved. */
-const capture = text => setUI({ window: { Body: Capture, text } });
-function Capture({ text = '' }) {
-  const [v, setV] = useState(text);
+/* Capture (C, a phone's round button, the installed app's Capture: see the start): what's typed goes to the Inbox, a
+   line an item. Its buttons: Cancel, then Add to Inbox. Closed with words in it, they're notSaved. */
+const capture = () => setUI({ window: { Body: Capture } });
+function Capture() {
+  const [v, setV] = useState('');
   const add = () => {
     const n = addToInbox(v);
     if (!n) return;
@@ -2570,7 +2569,7 @@ function App() {
     <main class="main" key=${route.view}>
       <${View} />
     </main>
-    ${route.view !== 'inbox' && html`<button class="fab" aria-label="Capture to Inbox" data-tip="Capture to Inbox" onClick=${() => capture()}><${Icon} name="capture" size=${26} /></button>`}
+    ${route.view !== 'inbox' && html`<button class="fab" aria-label="Capture to Inbox" data-tip="Capture to Inbox" onClick=${capture}><${Icon} name="capture" size=${26} /></button>`}
     ${ui.window && html`<${ui.window.Body} ...${ui.window} />`}
     ${ui.splash && html`<${Splash} key=${ui.splash.words} ...${ui.splash} />`}
     <div class="toasts" aria-live="polite">${t && html`<div class="toast" key=${t.id}>
@@ -2640,13 +2639,12 @@ addEventListener('beforeunload', e => { if (auth && store.unpushed) e.preventDef
 document.fonts.load('1em Inter', JSON.stringify(store.items));
 navigator.storage.persist();
 /* What the address brings, read once as SIByL starts and cleared (before hold adds its history entry): Dropbox's
-   sign-in coming back (code); the installed app's Capture (its icon held: capture); something shared to SIByL from
-   another app (title, text, url), which Capture holds as one line (one item), leaving out a link the text holds. */
+   sign-in coming back (code); the installed app's Capture (its icon held: capture). A share from another app is the
+   phone's Capture app's (capture.apk). */
 const asked = new URLSearchParams(location.search);
 if (location.search) history.replaceState(null, '', home);
 if (asked.has('code')) signedIn(asked.get('code'));
-const shared = ['title', 'text', 'url'].map(k => asked.get(k)).filter((x, i, all) => x && !(i === 2 && all[1]?.includes(x)));
-if (asked.has('capture') || shared.length) capture(oneLine(shared.join(' ')));
+if (asked.has('capture')) capture();
 /* Offline (see sw.js); none over plain http. */
 navigator.serviceWorker?.register('sw.js');
 refresh();
