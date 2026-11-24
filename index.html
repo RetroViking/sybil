@@ -1,0 +1,2606 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=resizes-content">
+<meta name="theme-color" content="#000">
+<!-- SIByL is dark already: Dark Reader is to leave it as it is. -->
+<meta name="darkreader-lock">
+<title>SIByL</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/app.svg">
+<link rel="stylesheet" href="vendor/inter.css">
+<style>
+/* OmniFocus 4's flat chrome, with a Mac's gloss on what's pressed. No CSS filters: Firefox paints them as bitmaps. */
+:root {
+  color-scheme: dark;
+  /* OmniFocus 4's dark look (darkmode.png, measured): its page black, an item open on it grey (--card). */
+  --bg: #000;
+  --card: #1a1c1c;
+  --surface: #232326;
+  /* A grey face flat on the page: a box typed in, the Inbox's box, the Calendar's days. */
+  --tile: #29292c;
+  --tile-hover: #323236;
+  --rail: #1e1e21;
+  --hover: rgba(255, 255, 255, .06);
+  --line: #303034;
+  --line-strong: #46484e;
+  --ring: #585b62;
+  --ring-hover: #8c9098;
+  --edge: rgba(255, 255, 255, .09);
+  --fg: #eff0f2;
+  --fg-2: #a7abb2;
+  --fg-3: #767a82;
+  --btn-a: #46484e;
+  --btn-b: #3c3e43;
+  --btn-line: #1a1b1d;
+  --btn-line-b: #131416;
+  --btn-hi: rgba(255, 255, 255, .08);
+  --seg-on-a: #1d1e21;
+  --seg-on-b: #26272a;
+  /* Each section's one colour: its title, rail mark and dot, and its marks elsewhere (the Sweep's choices). Inbox's
+     and the Calendar's are OmniFocus 4's own (its Inbox and Forecast, forecast.png), Research's its Review cup's, each
+     lifted for the dark page to about one brightness (luminance ~.33), keeping its hue; Projects' is OmniFocus's
+     flag's own dark orange (of1.jpg), Someday's Things 3's box (someday.png). */
+  --c-next: #f87b91;
+  --c-inbox: #9898b8;
+  --c-sweep: #b07df5;
+  --c-calendar: #f7736b;
+  --c-ticklers: #1cb0a6;
+  --c-projects: #f2ad40;
+  --c-someday: #cbbd7b;
+  --c-research: #9694e0;
+  /* History's and Settings': a Mac's grey for its tools. */
+  --c-tools: var(--fg-2);
+  /* OmniFocus's lavender (measured), light enough for words on the page; its gloss tops it with the
+     broom's own lighter stop. */
+  --accent: #be84fc;
+  --accent-a: #c690fd;
+  --accent-line: #543a9d;
+  --accent-soft: #3d304d;
+  /* Every red, for what's wrong, deleted or late (the user's call): a pure red, lighter than trash.png's can's
+     (#f36076), which read too faint beside today's yellow. */
+  --red: #ff7070;
+  /* A task's circle and day on the day it's due (OmniFocus's yellow, today.png, measured); past it, red. */
+  --due: #ffcb00;
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, .4);
+  --shadow-2: 0 2px 6px rgba(0, 0, 0, .35), 0 18px 44px rgba(0, 0, 0, .55);
+  --scrim: rgba(0, 0, 0, .55);
+  --font-ui: "Inter", system-ui, sans-serif;
+  --r-ctl: 7px;
+  /* Taken off every font weight: light text on a dark page looks bolder (it spreads in the eye). */
+  --thin: 30;
+  --row-y: 13px;
+  --r-box: 10px;
+  --inset: 14px;
+  /* A page's header as it stays at the top (see .page-h): its title's line and its padding. */
+  --head: 54.5px;
+  /* A dropdown's room on the right for its chevron, 6px after its words, and 2px to spare (see select.field). */
+  --chev-room: 30px;
+  /* An edit pencil's size, by its words' (see .edit-hint). */
+  --pencil: max(13px, .55em);
+  /* A line's room before its box, one for every line: its mark's 16px column (a field's icon, a next action's arrow,
+     a pencil) and 6px. */
+  --lead: 22px;
+  /* ...and before its words, 7px into its box (textarea.words); as far in on a line with no box (a pencil's words),
+     so words start on one line, and don't move when a box comes round them. */
+  --words-in: calc(var(--lead) + 7px);
+  --chev: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a7abb2' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  --btn-fill: linear-gradient(var(--btn-a), var(--btn-b));
+  --btn-hover: linear-gradient(var(--btn-a), color-mix(in srgb, var(--btn-b) 50%, var(--btn-a)));
+  --accent-fill: linear-gradient(var(--accent-a), var(--accent));
+  --lift: linear-gradient(rgba(255, 255, 255, .1), rgba(255, 255, 255, .1));
+}
+
+/* A tap lights nothing (Chrome flashes what it lands on). */
+html { -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 14.5px/1.5 var(--font-ui);
+  font-weight: calc(400 - var(--thin));
+  overflow: hidden;
+}
+button, input, textarea, select { font: inherit; color: inherit; }
+button { cursor: pointer; border: 0; background: none; padding: 0; }
+/* Some phone browsers default a button to align-items: flex-start; :where lets any rule of ours still win. */
+:where(button) { align-items: normal; }
+/* Rings are the keyboard's (see .keyed): browsers judge :focus-visible each their own way (Chromium ringed what was
+   tapped). */
+:where(:root.keyed) :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+::selection { background: var(--accent-soft); }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
+/* A square box, its icon centred (--s: its size): a circle, a tool, a +. A row's circles, can and tools sit on its
+   first line, centred on it and taking only its height, so no row grows for them. */
+.fab, .add-btn, .done-btn, .ring-btn, .del-btn, .icon-btn, .add-ico, .send-btn, .clear-btn span { display: inline-grid; place-items: center; width: var(--s); height: var(--s); flex: none; }
+.done-btn, .ring-btn, .del-btn, .line-row > .icon-btn, .pick-del { margin-block: calc((1lh - var(--s)) / 2); }
+
+/* ---------- shell: the rail; on phones a bar along the foot ---------- */
+#app { height: 100%; }
+.app { display: grid; grid-template: "rail main" minmax(0, 1fr) / 76px minmax(0, 1fr); height: 100%; }
+.art-ico { display: block; flex: none; }
+/* Its seven cells give a little in a short window, so all still fit above the rail's foot. */
+.sidebar {
+  grid-area: rail; position: relative; z-index: 20;
+  background: var(--rail); border-right: 1px solid var(--line);
+  display: flex; flex-direction: column;
+  padding: 0 0 8px;
+  min-height: 0;
+  --cell: clamp(56px, calc((100vh - 100px) / 7), 70px);
+}
+.nav { display: flex; flex-direction: column; }
+.nav-item {
+  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;
+  height: var(--cell); padding: 0 2px; color: var(--fg-3); transition: background .15s, color .15s;
+}
+/* Every hover look is a mouse's (:where adds no weight): a phone keeps :hover on what it last tapped, so a button
+   stayed lit after a tap, and so did whatever button took its place. */
+:where(:root:not(.touch)) .nav-item:hover { background: var(--hover); color: var(--fg-2); }
+/* Where you are, as OmniFocus 4 marks it: the name in its section's colour (--t) and a bar at the rail's inner edge. */
+.nav-item.on { color: var(--t); }
+.nav-item.on::after { content: ""; position: absolute; right: 0; top: 16%; bottom: 16%; width: 4px; border-radius: 3px 0 0 3px; background: var(--t); }
+.nav-ico { position: relative; display: inline-flex; }
+.nav-label, .sync { font-size: 10.5px; font-weight: calc(600 - var(--thin)); line-height: 1.2; letter-spacing: .01em; white-space: nowrap; }
+/* Inbox items waiting, a Research answer not yet read: a dot where OmniFocus 4 puts its count (no number, nothing
+   blinking), clear of the icon. */
+.nav-flag { position: absolute; top: -2px; right: -6px; width: 9px; height: 9px; border-radius: 50%; background: var(--t); box-shadow: 0 0 0 2px var(--rail); }
+.side-foot { margin-top: auto; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 2px; padding-top: 12px; }
+.side-foot .icon-btn { height: 28px; border-radius: var(--r-ctl); }
+/* How the copy stands with Dropbox (see SyncState): over History and Settings; in a phone's top bar, at its other end. */
+.sync { flex-basis: 100%; text-align: center; padding: 6px 0; color: var(--fg-3); }
+/* Words saying what's wrong: the sync word, when it isn't synced; a toast's (see toast). */
+.bad { color: var(--red); }
+/* One fixed label above everything, so no pane's clipping cuts it off. */
+.tip {
+  position: fixed; left: 0; top: 0; z-index: 80; pointer-events: none; transform: translate(-50%, -100%);
+  background: rgba(28, 29, 33, .92); color: #fff; font-size: 12px; font-weight: calc(500 - var(--thin)); line-height: 1.25; padding: 4.5px 8px; border-radius: 6px;
+  width: max-content; max-width: min(320px, calc(100vw - 16px)); box-shadow: 0 4px 12px rgba(0, 0, 0, .25); opacity: 0; transition: opacity .12s;
+}
+.tip.on { opacity: 1; }
+.tip.under { transform: translateX(-50%); }
+@media (min-width: 900px) and (max-height: 680px) { .sidebar { overflow-y: auto; scrollbar-width: none; } }
+
+/* The scrollbar's room is always kept, so nothing shifts sideways when a page outgrows the window; what scrolls into
+   view stops clear of the Sweep's bar. */
+.main { grid-area: main; min-width: 0; min-height: 0; position: relative; overflow-y: auto; scrollbar-gutter: stable; scroll-padding-bottom: var(--bar, 0px); }
+/* What scrolls into view stops clear of what stays at the top: a page's header, and the Calendar's days under it. */
+.main:has(.page-h) { scroll-padding-top: var(--head); }
+.main:has(.dates) { scroll-padding-top: calc(var(--head) + 66px); }
+/* One 560px column inside the padding, so a row's name stays close to its circle. */
+.page { max-width: 656px; margin: 0 auto; padding: 40px 48px 120px; box-sizing: border-box; }
+.topbar { display: none; }
+
+/* On phones the rail lies along the foot (OmniFocus's tab bar), History and Settings in a bar at the top.
+   The Sweep's bar takes the foot's place; while a finger types, the keyboard does (the foot and the Capture button
+   go, as nothing there is needed mid-word and the keyboard leaves little room). --tabs: the foot's height, kept clear
+   by the Capture button. */
+@media (max-width: 899px) {
+  .app { grid-template: "top" auto "main" minmax(0, 1fr) "rail" auto / minmax(0, 1fr); --tabs: 50px; }
+  .app:has(.bar), :root.touch .app:has(:is(textarea, input:not([type=date])):focus) { --tabs: 0px; }
+  .app:has(.bar) .sidebar, :root.touch .app:has(:is(textarea, input:not([type=date])):focus) :is(.sidebar, .fab) { display: none; }
+  .sidebar { border-right: 0; border-top: 1px solid var(--line); padding: 0; }
+  .nav { flex-direction: row; }
+  .nav-item { flex: 1 1 0; min-width: 0; height: var(--tabs); gap: 3px; }
+  .nav-item.on::after { top: 0; bottom: auto; left: 18%; right: 18%; width: auto; height: 4px; border-radius: 0 0 3px 3px; }
+  /* Icons alone: the labels crowded the bar. */
+  .nav-label { display: none; }
+  .side-foot { display: none; }
+  .topbar { grid-area: top; position: relative; z-index: 16; display: flex; justify-content: flex-end; gap: 6px; padding: 6px 10px; border-bottom: 1px solid var(--line); }
+  .topbar .sync { flex: none; align-self: center; margin-right: auto; padding: 0 4px; font-size: 12.5px; }
+  .fab {
+    position: fixed; right: 18px; bottom: calc(18px + var(--bar, 0px) + var(--tabs, 0px)); z-index: 30;
+    --s: 54px; border-radius: 50%; border: 1px solid;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), 0 8px 22px -6px color-mix(in srgb, var(--accent-line) 60%, transparent), var(--shadow-1);
+  }
+}
+@media (min-width: 900px) { .fab { display: none; } }
+
+/* ---------- page header ---------- */
+/* A page's header stays at the top as the page scrolls, as OmniFocus's title does, its buttons at hand (a +, the Sweep);
+   as wide as the panes, on the page's face, its room given back by its margins. --head: its height. */
+.page-h {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  position: sticky; top: 0; z-index: 3; background: var(--bg); padding: 10px var(--inset); margin: -10px calc(-1 * var(--inset)) 14px;
+}
+/* The actions drop below the title rather than squeeze it: a title never breaks. */
+.page-h-main { display: flex; align-items: flex-start; gap: 12px; flex: 1 1 300px; }
+/* OmniFocus 4's large title (forecast.png), in the section's colour: 28px, a step heavier than bold, its letters not
+   drawn together. Its line sets the header's height. */
+.page-h h1, .splash b { margin: 0; font: 28px/34.5px var(--font-ui); font-weight: calc(800 - var(--thin)); white-space: nowrap; color: var(--t, var(--fg)); }
+.page-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding-top: 1px; margin-left: auto; }
+
+/* ---------- controls ---------- */
+/* The glossy face of everything pressable, and of what's picked rather than typed (a day, a time, a count). */
+.btn, .seg, .days button, select.field, .field:is(.pick, [type=number]) { border: 1px solid var(--btn-line); border-bottom-color: var(--btn-line-b); background: var(--btn-fill); box-shadow: inset 0 1px 0 var(--btn-hi), 0 1px 1px rgba(0, 0, 0, .06); }
+:where(:root:not(.touch)) .btn:hover, :where(:root:not(.touch)) .days button:hover:not(.on) { background: var(--btn-hover); }
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; color: var(--fg);
+  padding: 5px 12px; border-radius: var(--r-ctl); font-weight: calc(500 - var(--thin)); font-size: 13.5px; line-height: 1.3;
+  white-space: nowrap; transition: color .15s;
+}
+.btn:active { background: linear-gradient(var(--btn-b), var(--btn-a)); box-shadow: inset 0 1px 2px rgba(0, 0, 0, .14); }
+.btn.ghost { border-color: transparent; background: none; box-shadow: none; color: var(--fg-2); }
+:where(:root:not(.touch)) .btn.ghost:hover, :where(:root:not(.touch)) .icon-btn:hover, :where(:root:not(.touch)) .editable .edit-hint:hover { background: var(--hover); color: var(--fg); }
+:where(:root:not(.touch)) .icon-btn.danger:hover { color: var(--red); }
+.add-btn { --s: 32px; border-radius: 50%; border: 1px solid; }
+/* The accent's glossy face; the Capture button floats, with a shadow of its own. */
+.btn.primary, .days button.on, .send-btn.ready, .add-btn, .fab { background: var(--accent-fill); border-color: var(--accent-line); color: #fff; }
+.btn.primary, .days button.on, .send-btn.ready, .add-btn { text-shadow: 0 -1px 0 rgba(0, 0, 0, .14); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .25), 0 1px 2px color-mix(in srgb, var(--accent-line) 25%, transparent); }
+:where(:root:not(.touch)) .btn.primary:hover, :where(:root:not(.touch)) .add-btn:hover, :where(:root:not(.touch)) .send-btn.ready:hover { background: var(--lift), var(--accent-fill); }
+.btn.primary:active { background: linear-gradient(var(--accent), var(--accent-a)); box-shadow: inset 0 1px 3px rgba(0, 0, 0, .3); }
+/* Not pressable yet: quietly grey rather than faded out. */
+.btn.primary:disabled { cursor: default; background: var(--btn-fill); border-color: var(--btn-line); color: var(--fg-3); text-shadow: none; box-shadow: inset 0 1px 0 var(--btn-hi); }
+/* Done: one 32px circle everywhere, always at a row's right, centred on the first line of what it ticks off (a
+   task's is two: see .task-row) and no taller, so no row grows for it. Its side margins give the circles down a pane
+   one centre, with the add row's plus. A late task's is its day's colour (see .task-when). Where a circle would be, an
+   open project's hold and an open Someday task's Make it a project are that ring, their mark always showing
+   (.ring-btn), in the colour of the section it sends the thing to: Projects', for both. */
+.done-btn, .ring-btn {
+  --s: 32px; margin-inline: 3px -2px; box-sizing: border-box;
+  border: 4px solid var(--ring); border-radius: 50%; background: transparent; color: transparent;
+  transition: color .15s, border-color .15s; position: relative;
+}
+.done-btn:is(.today, .overdue) { --ring: var(--late); --ring-hover: var(--late); }
+.ring-btn { --ring: var(--c-projects); --ring-hover: var(--c-projects); color: var(--ring); }
+/* A finger needs more than the ring: the circle answers a little way around it, within its row. */
+:root.touch :is(.done-btn, .ring-btn)::after { content: ""; position: absolute; inset: -7px -6px; }
+:where(:root:not(.touch)) :is(.done-btn, .ring-btn):hover, :is(.done-btn, .ring-btn):focus-visible { border-color: var(--ring-hover); color: var(--ring-hover); }
+:is(.done-btn, .ring-btn) svg { stroke-width: 2.6; }
+.icon-btn {
+  --s: 30px; color: var(--fg-3); border-radius: 8px; transition: background .15s, color .15s, opacity .15s;
+}
+/* Row tools (.reveal in a .hov row): a mouse sees them on hover, with the keyboard on one, or while the row is open;
+   a finger in a row it tapped open (see .line-row). Not :focus-within: a clicked row kept its tools while another
+   row showed its own. */
+:root:not(.touch) .hov:not(:hover):not(.open):not(:has(button:focus-visible)) .reveal { opacity: 0; }
+/* A box typed in has the Inbox box's grey face, no border (one clear of it keeps every field the same size). */
+.field {
+  width: 100%; box-sizing: border-box; color: var(--fg); border: 1px solid transparent; background: var(--tile);
+  border-radius: var(--r-ctl); padding: 4px 10px; outline: none; transition: box-shadow .15s;
+}
+/* A box being typed in glows; a dropdown or a day only for the keyboard, as rings do (one tapped glowed on after its
+   menu shut). */
+.field:not(select):focus, :where(:root.keyed) select.field:focus, :where(:root.keyed) .pick:focus-within, .capture-box:focus-within { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 60%, transparent), 0 0 0 3px var(--accent-soft); }
+::placeholder { color: var(--fg-3); opacity: 1; }
+/* Every box grows with its words (AutoTextarea), so none needs a handle or a scroll bar: the whole-pixel scrollHeight
+   it is sized by can fall a fraction short of its words, and a phone then showed its scroll bar along the box. */
+textarea { resize: none; overflow: hidden; }
+:is(select, .pick).field { width: auto; flex: none; }
+/* Our own chevron: the browser's sat nearly against the edge. As wide as its choice, not its longest one, so what
+   follows it on its row stays close. */
+select.field {
+  cursor: pointer; appearance: none; padding-right: var(--chev-room); field-sizing: content;
+  background: var(--chev) no-repeat right 10px center / 12px, var(--btn-fill);
+}
+:where(:root:not(.touch)) select.field:hover { background: var(--chev) no-repeat right 10px center / 12px, var(--btn-hover); }
+/* A box's × at its end (see ClearButton): a search box's (see Search, some room before what it narrows), a day's. */
+.clear-field { position: relative; margin-bottom: 8px; }
+.clear-field .field, .pick:has(> .clear-btn) { padding-right: 28px; }
+.clear-btn { position: absolute; top: 0; right: 1px; bottom: 0; width: 26px; display: grid; place-items: center; color: var(--surface); }
+.clear-btn span { --s: 16px; border-radius: 50%; background: var(--fg-3); transition: background .15s; }
+:where(:root:not(.touch)) .clear-btn:hover span { background: var(--fg-2); }
+.clear-btn svg { stroke-width: 3.4; }
+.seg { display: inline-flex; max-width: 100%; border-radius: var(--r-ctl); overflow: hidden; }
+.seg button { display: inline-flex; align-items: center; justify-content: center; flex: none; min-width: 44px; border-left: 1px solid var(--btn-line); padding: 3px 11px; font-size: 13px; font-weight: calc(500 - var(--thin)); color: var(--fg-2); white-space: nowrap; }
+.seg button:first-child { border-left: 0; }
+:where(:root:not(.touch)) .seg button:hover { color: var(--fg); }
+.seg button.on { background: linear-gradient(var(--seg-on-a), var(--seg-on-b)); color: var(--fg); box-shadow: inset 0 1px 3px rgba(0, 0, 0, .2); }
+/* The Calendar's days (see CalendarView), as wide as the panes. A name shrinks to fit its seventh of the strip (100cqi
+   / 7, less 6px of padding and gap), all to one size: the widest, "Tomorrow", is just under 5 times its type. The strip
+   stays at the top as the page scrolls, under its header, so every day is in reach (a task is dropped on one: see
+   startDrag), with room on the page's face around it (its margins give it back). */
+.dates {
+  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 2px; container-type: inline-size;
+  position: sticky; top: var(--head); z-index: 2; padding: 8px 0; margin: -8px calc(-1 * var(--inset)) 14px; background: var(--bg);
+}
+.dates button {
+  display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 6px 2px 5px; border-radius: 4px; background: var(--tile);
+  color: var(--fg-2); font-size: min(12px, calc((100cqi / 7 - 6px) / 5)); font-weight: calc(500 - var(--thin)); line-height: 1.25; white-space: nowrap; transition: background .12s;
+}
+:where(:root:not(.touch)) .dates button:hover:not(:disabled, .on) { background: var(--tile-hover); }
+.dates button:disabled { cursor: default; color: var(--fg-3); }
+/* The day picked, as OmniFocus 4 marks it: a bar along its top, the tile and all its words in the accent (the tile's
+   tint a quarter of it, as measured there). */
+.dates button.on { background: color-mix(in srgb, var(--accent) 24%, var(--bg)); color: var(--accent); box-shadow: inset 0 3px var(--accent); }
+.dates b { font-size: 19px; font-weight: calc(500 - var(--thin)); line-height: 1.2; color: var(--fg-2); }
+.dates :is(button:disabled, .on) b { color: inherit; }
+/* Research's Answered and Waiting (see ResearchView), on a line of their own. */
+.scope { display: flex; width: fit-content; margin: -6px 0 18px; }
+/* What's wrong with an open thing, in its row. */
+.err { margin: 0; color: var(--red); font-size: 13px; }
+.row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.spacer { flex: 1; }
+/* Words that can be edited have their pencil before them, centred on their first line: the same spot on every row,
+   however long the words (after the last word it moved from row to row). It stands in a mark's column, its words
+   where a box's start (see --words-in); its room stays while it's hidden, so the words never move. */
+.editable, div.words { display: flex; align-items: flex-start; }
+.edit-words { flex: 1; min-width: 0; }
+.edit-hint { display: inline-flex; flex: none; justify-content: center; align-items: center; width: 16px; height: 1lh; margin-right: calc(var(--words-in) - 16px); color: var(--fg-3); opacity: 0; transition: opacity .15s; }
+.edit-hint svg { width: var(--pencil); height: var(--pencil); }
+:root:not(.touch) .editable { cursor: default; user-select: none; }
+/* A pencil shows wherever its row lights up, not only over the words: the row's room above and below them hid it. Not
+   an open thing's row, which holds its infos: hovering one lit every info's pencil. */
+:root:not(.touch) :is(.li, .line-row, .pick-row, .editable):not(.editing, .editing > *):hover .edit-hint, .editable:focus-visible .edit-hint { opacity: 1; }
+:root:not(.touch) .editable .edit-hint { cursor: pointer; padding: 0 3px; margin: 0 calc(var(--words-in) - 16px - 3px) 0 -3px; border-radius: 5px; }
+/* Words typed in where they stand (a line renamed, an open thing's name and description): the box starts where a
+   field's does (--lead), its padding where its words were, and its room above and below is taken back by its margin,
+   so they don't move or wrap anew. A line's box reaches as far past its words on the right, into its row's room; an
+   open thing's (after its pencil, which stays: see Words) ends where its words' room does, theirs kept 7px short, as
+   the card's edge is close (reaching past, it nearly touched it). An open thing's words are a box only while typed in.
+   */
+.edit-input, textarea.words { padding: 3px 7px; border-radius: 6px; box-sizing: border-box; border: 0; outline: none; letter-spacing: inherit; background: none; }
+.edit-input { display: block; margin: -3px -7px -3px var(--lead); width: calc(100% - var(--lead) + 7px); }
+textarea.words { flex: 1; min-width: 0; margin: -3px 0 -3px -7px; }
+div.words > .edit-words { padding-right: 7px; }
+.edit-input, textarea.words:focus { background: var(--surface); box-shadow: inset 0 1px 2px rgba(0, 0, 0, .08), 0 0 0 1px var(--accent), 0 0 0 4px var(--accent-soft); }
+.empty { color: var(--fg-3); padding: 10px 0; font-size: 14px; }
+.chev { display: inline-flex; transition: transform .15s; }
+[aria-expanded="true"] > .chev, .chapter-h:has([aria-expanded="true"]) > .chev { transform: rotate(90deg); }
+
+/* ---------- panes ---------- */
+/* A pane is a section flat on the page, as in OmniFocus 4: its words in line with the page's, its rows' light reaching
+   --inset past them, a hairline (as wide as its words) parting it from the pane before. */
+.panel { margin: 0 calc(-1 * var(--inset)) 12px; }
+.panel + .panel::before { content: ""; display: block; margin: 0 var(--inset) 6px; border-top: 1px solid var(--line); }
+.panel-h { display: flex; align-items: center; min-height: 38px; padding: 0 var(--inset); }
+/* A step bigger than the rows, so a pane (Next's contexts, the Calendar's days) stands out from what's in it; Next's
+   contexts in the accent too, to be spotted down a long page (the user's ask; Next's own colour read as late). */
+.panel-h h2 { margin: 0; font-size: 20px; font-weight: calc(700 - var(--thin)); letter-spacing: -.01em; color: var(--fg); min-width: 0; }
+.next .panel-h h2 { color: var(--accent); }
+.panel-b { padding: 0 var(--inset); }
+
+.list, .lines { list-style: none; margin: 0; padding: 0; }
+/* A list's rows, a task's (.li) and a project's or question's (.pick-row), padded alike. */
+.li, .pick-row { display: flex; align-items: flex-start; gap: 12px; padding: var(--row-y) 0; min-width: 0; }
+/* Room parts rows; lines part only panes (see .panel). */
+.li-body { flex: 1; min-width: 0; }
+.li-title { font-weight: calc(450 - var(--thin)); overflow-wrap: anywhere; }
+/* A task's row, every part in the same place, as OmniFocus's Forecast has them: name | repeat, then under the name
+   where it's from (.task-from) | day, the circle centred on the first two. .task-side is one piece, so a two-line name
+   pushes that line down, never the day away from the circle. Rows share columns (a subgrid through each li). */
+.list:has(> li > .task-row) { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; column-gap: 12px; }
+.list:has(> li > .task-row) > li, .li.task-row { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; }
+.li.task-row { column-gap: 12px; row-gap: 0; align-items: baseline; }
+/* No wider than its words: on Next it's what opens the task. */
+.task-row > .li-title { grid-area: 1 / 1; justify-self: start; }
+.task-side { grid-area: 1 / 2 / 3; justify-self: end; text-align: right; color: var(--fg-3); white-space: nowrap; }
+.task-rule, .task-from, .task-when { font-size: 13px; }
+/* A mark leading words on their line: a repeat's, where a task's from, a link's. */
+:is(.task-rule, .task-from, a.link) svg { vertical-align: -1px; margin-right: 4px; }
+.task-rule .last { color: var(--fg-2); font-weight: calc(550 - var(--thin)); }
+/* Under the name, where it's from: its project, or on Next the page a dated one comes from (see taskRows). Words, not
+   a link, as a click anywhere on the row opens it (two buttons for one thing, the user found). Empty, it keeps
+   the row's second line, so every row's day and circle sit alike. */
+.task-from { grid-column: 1; justify-self: start; min-height: 1lh; margin-top: 1px; color: var(--fg-3); }
+.task-when { display: block; font-variant-numeric: tabular-nums; }
+/* A late task's day (see dueOf), in its circle's colour: on its day yellow, past it red. */
+.today { --late: var(--due); }
+.overdue { --late: var(--red); }
+.task-when:is(.today, .overdue) { color: var(--late); font-weight: calc(550 - var(--thin)); }
+.task-row > .done-btn { grid-area: 1 / 3 / 3; align-self: start; margin-top: calc(.5lh + (1lh - var(--s)) / 2); }
+/* A row opens at a click anywhere on it; its name is a button too, for the keyboard. */
+button.li-title { text-align: left; }
+.tappable, .chapter-h { cursor: pointer; }
+/* In a pane a row lights up edge to edge, its words kept in place. */
+.panel-b :is(.li, .pick-row) { margin: 0 calc(-1 * var(--inset)); padding-inline: var(--inset); }
+.li, .line-row, .pick-row, .choice { border-radius: 8px; transition: background .12s; }
+:root:not(.touch) :is(.li, .line-row, .pick-row, .choice):not(.editing, .editing > *):hover, .hov.open { background: var(--hover); }
+/* A list of lines in a thing (an open project's infos, Settings' contexts): lines in one type, lit edge to edge, an
+   AddLine adding more. Their pencils' column starts where its name does. */
+.lines > * { font-size: 14px; color: var(--fg-2); overflow-wrap: anywhere; }
+.lines > .line-row, .lines .add-row { margin: 0 calc(-1 * var(--inset)); }
+/* A project's, question's or Someday task's row (see Picks), and an answered question's (Chapter); a row's trash
+   stays on the name's first line, whatever comes under it. In a list of tasks' columns it spans them: a project open
+   in its next action's place, Someday's rows while one of them is open as a task (they narrowed to its first). */
+.pick-row { gap: 8px; grid-column: 1 / -1; }
+.pick-row > .li-body { align-self: baseline; }
+.pick-row .pick-del { margin-left: 6px; }
+/* A caret last, at the row's edge, as OmniFocus has it (an answered question); it and a mark before words that wrap
+   (Add info's, a project's next action's) centred on their first line. */
+.pick-row > .chev, .add-row > .field-mark, .act > .field-mark { height: 1lh; align-items: center; }
+.pick-row > .chev { color: var(--fg-3); }
+
+/* A question's description, or a project's next action, under its name (see Picks); the Inbox's tickler. */
+.note { font-size: 13px; color: var(--fg-3); line-height: 1.4; overflow-wrap: anywhere; white-space: pre-line; }
+
+/* ---------- plain lists ---------- */
+/* Plain lines (see ListLine). The right padding (inset + 10px) is the width these lines have always wrapped at. */
+.line-row { display: flex; align-items: flex-start; gap: 12px; padding: var(--row-y) calc(var(--inset) + 10px) var(--row-y) var(--inset); }
+.line-title { overflow-wrap: anywhere; }
+/* A line's last tool (its trash; an info's ↑ comes first) ends in the row's side room. */
+.line-row > .icon-btn:last-child { margin-right: -10px; }
+/* A finger taps a line open (see useTapped); the pencil keeps its room while hidden, the tools take their own only
+   while it's open: never on a Someday task's row, which a tap opens (its Delete is there). */
+:root.touch .hov:not(.open) .reveal { display: none; }
+:root.touch .hov:not(.open) .edit-hint { visibility: hidden; }
+/* A finger edits by the pencil, so it always shows; the press counts a little way around it. */
+:root.touch .editable .edit-hint { opacity: 1; position: relative; }
+:root.touch .editable .edit-hint::after { content: ""; position: absolute; inset: -11px -12px; }
+/* Its plus sits where the circles do. */
+.add-row { display: flex; align-items: flex-start; gap: 12px; padding: var(--row-y) var(--inset); cursor: text; }
+.add-row .add-ico { --s: 22px; color: var(--fg-3); margin-right: 3px; transition: color .15s; }
+/* Typed where the lines' words start, after their pencils' room (see .edit-hint), or after its mark (an open project's
+   Add info), which stands where theirs do. */
+.add-row textarea { flex: 1; min-width: 0; border: 0; outline: none; background: none; padding: 0; margin-left: var(--words-in); }
+.add-row > .field-mark { margin-right: calc(var(--words-in) - 16px - 12px); }
+.add-row > .field-mark + textarea { margin-left: 0; }
+.add-row:focus-within .add-ico { color: var(--accent); }
+
+/* ---------- inbox ---------- */
+/* The Inbox's tickler (see Settings), over its box. */
+.tickler { margin: 0 0 12px; }
+/* The Inbox's box: a grey tile flat on the page, as OmniFocus 4 has them, reaching --inset past the words it holds so
+   they line up with the page's. */
+.capture-box { background: var(--tile); border-radius: var(--r-box); margin: 0 calc(-1 * var(--inset)) 20px; padding: 11px 11px 9px var(--inset); transition: box-shadow .15s; }
+.capture-box textarea { display: block; width: 100%; box-sizing: border-box; border: 0; outline: none; background: none; padding: 2px 0; }
+/* Under the box's words, at its right. */
+.send-btn {
+  --s: 28px; display: grid; margin: 4px 0 0 auto;
+  border: 1px solid var(--btn-line); border-radius: 50%; background: var(--btn-fill); color: var(--fg-3);
+  box-shadow: inset 0 1px 0 var(--btn-hi);
+  transition: background .15s, color .15s, box-shadow .15s;
+}
+.capture-box:focus-within .send-btn:not(.ready) { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, var(--btn-line)); }
+.send-btn:active { box-shadow: inset 0 1px 3px rgba(0, 0, 0, .25); }
+/* OmniFocus's empty Inbox (inbox.png): its tray, its grey and its size beside the page title, measured. */
+.inbox-zero { width: min(187px, 58%); margin: max(56px, 13vh) auto 0; }
+.inbox-zero svg { display: block; width: 100%; height: auto; fill: color-mix(in srgb, var(--fg) 13%, var(--bg)); }
+
+/* ---------- drag to rearrange ---------- */
+.dragging, .dragging * { cursor: grabbing !important; user-select: none; }
+/* While a mouse carries something, only what takes it (a zone) answers the pointer: nothing else lights up as if a
+   drop there would do something. */
+:root:not(.touch) .dragging * { pointer-events: none; }
+:root:not(.touch) .dragging [data-zone] { pointer-events: auto; }
+.drag-ghost { position: fixed; left: 0; top: 0; z-index: 70; margin: 0; pointer-events: none; box-sizing: border-box; box-shadow: var(--shadow-2); opacity: .96; }
+/* What drags (a task, a row of Picks, a line: an info, a context) isn't selectable text, so a resting finger picks it
+   up. */
+[data-key] { user-select: none; }
+:is(.li, .pick-row, .line-row).drag-ghost { background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-box); }
+:is(.li, .pick-row).drag-ghost { padding-inline: 10px; }
+.drag-src { opacity: .35; }
+/* A task held over a day on the Calendar's strip, to go to it (see startDrag). */
+.dates .drop-on { background: var(--accent-soft); box-shadow: inset 0 0 0 2px var(--accent); }
+.drop-line { position: fixed; z-index: 71; display: none; height: 2px; background: var(--accent); border-radius: 2px; pointer-events: none; }
+
+/* ---------- a thing open in place ---------- */
+/* A thing's row turned into its editor (see useOpened), as OmniFocus opens a row: its name (and a question's
+   description) as words (see Words), the pencil always showing; under it where and when it's done, a project's next
+   action and infos. It's a grey card on the page, as OmniFocus's dark look opens one. What's picked is a glossy
+   control. Every field starts from the left: a placeholder names it, a choice its own options, an icon what neither
+   can (.field-mark). */
+.editing > :is(.li, .pick-row) { background: var(--card); }
+.edit-b { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+/* Nothing under a name (a Someday task's: no when) takes no room either. */
+.edit-b:empty { display: none; }
+.task-row > .edit-b { grid-area: 2 / 1 / auto / -1; padding-top: 12px; }
+.editing > .task-row > .name-line { grid-column: 1 / -1; }
+/* An open thing's first line, one for every thing open in place (a task, a project): its name, then a task's circle
+   or a ring in its place, centred on the name's first line (see .done-btn). On the list's columns, a task's name ended
+   where the widest day of the list began, so its box ran from touching what followed it to far short of it
+   (inconsistent/). */
+.name-line { display: flex; align-items: flex-start; gap: 12px; }
+/* A project's next action: its arrow, then its box where the when-rows' are (--lead). */
+.act { flex-wrap: nowrap; align-items: flex-start; gap: 6px; font-size: 13px; }
+.act > textarea.words { margin-left: 0; }
+/* Everything in an open thing but its name in its controls' type: a project's infos, its next action. */
+.editing .lines > * { font-size: 13px; }
+/* An open thing's Delete (see DeleteButton): trash.png's can in its red, in a circle's 32px box, on the name's first
+   line and as far from the name as the circle is; no light under a mouse, as the circle has none (the user's ask). */
+.del-btn { --s: 32px; margin-left: 3px; color: var(--red); }
+/* An open project's parts, parted by a faint line, as panes are (the user's asks): under its name
+   and day due, its next action's (.edit-b), then its infos, Add info first, then the line counting them that folds
+   them (see InfoList); lit as they are. That line's count starts where the line does, its caret after it: led by its
+   caret, its words lined up with the infos' and read as the first of them (the user's ask). */
+.edit-b > .lines, .edit-b > .edit-b, .when > .when { border-top: 1px solid var(--line); }
+.edit-b > .edit-b, .when > .when { padding-top: var(--row-y); }
+/* A Tickler's repeat, parted from the rest as a project's parts are (the user's ask): as far below the row above. */
+.when > .when { margin-top: 8px; }
+.lines > .fold { margin: 0 calc(-1 * var(--inset)); padding: var(--row-y) var(--inset); }
+.line-btn { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; color: var(--fg-2); }
+.editing .field { font-size: 13px; padding-block: 2px; }
+.when { display: flex; flex-direction: column; gap: 6px; }
+.when .row { gap: 6px; }
+/* A new context's name, typed in the dropdown's place (see When). */
+.when .row > textarea.field { flex: 1 1 0; min-width: 8em; }
+/* A day's +, before it, as tall as the day. */
+.when .btn { width: 32px; height: calc(1lh + 4px); padding: 0; font-size: 13px; line-height: inherit; color: var(--fg-2); }
+div.words { white-space: pre-wrap; overflow-wrap: anywhere; cursor: text; }
+.words .edit-hint { opacity: 1; }
+.field-mark { display: inline-flex; color: var(--fg-3); }
+/* A day in words (PickField), the browser's own box unseen over them, so a click or tap anywhere opens its
+   picker with no script. Firefox opens it only from its button at the box's end, so the box is cut down to that button
+   (1em, past its .075em margin) and stretched over the words: one as big as the words, with a button that size, opened
+   Firefox's picker far from them. Opening it by script instead (showPicker, tried) needed a second click to
+   shut it by hand, and left the words selectable under a text cursor. */
+.pick { position: relative; overflow: clip; }
+.pick > input { position: absolute; top: 50%; left: -.075em; width: 1em; padding: 0; border: 0; opacity: 0; translate: 0 -50%; transform-origin: .075em; scale: 10 2.5; }
+/* Nothing picked yet (a day, a context): its name in grey, as a placeholder. */
+.field.unset { color: var(--fg-3); }
+/* The week on the repeat's line: a narrow page narrows the days. */
+.days { display: grid; grid-template-columns: repeat(7, minmax(0, 34px)); gap: 5px; flex: 1 1 0; min-width: 0; }
+.days button { height: 24px; border-radius: var(--r-ctl); font-weight: calc(500 - var(--thin)); font-size: 12px; }
+/* As wide as its digits, plus its own padding and border (without them, 12 lost its 2); typed, so no arrows. */
+.num { padding-inline: 8px; width: calc(var(--digits) * 1ch + 18px); font-variant-numeric: tabular-nums; appearance: textfield; }
+.num::-webkit-inner-spin-button, .num::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+
+/* ---------- the Sweep ---------- */
+/* Stop, at the right of the stage's first line (the Sweep has no title: its item says what it's about), centred on
+   that line (.eyebrow's, 19.5px) and taking no room; over the stage, which comes after it. */
+.sweep-stop { align-self: flex-end; margin: -5.25px 0 -24.75px; z-index: 1; }
+/* The Sweep's item. */
+.sweep-title { font: 25px/1.2 var(--font-ui); font-weight: calc(700 - var(--thin)); letter-spacing: -.016em; width: fit-content; margin: 0 0 16px; overflow-wrap: anywhere; }
+/* A word a moment over the page (see Splash), in the page's place, however far it's scrolled. */
+.splash { grid-area: main; z-index: 15; display: grid; place-items: center; text-align: center; background: var(--bg); animation: splash-out .2s ease-in .6s forwards; }
+.splash > div { animation: splash-in .3s ease-out both; }
+.splash .art-ico { margin: 0 auto 16px; }
+.splash b { display: block; }
+@keyframes splash-in { from { opacity: 0; transform: scale(.94); } }
+@keyframes splash-out { to { opacity: 0; } }
+.sweep-body, .sweep-step { animation: sweep-fade .18s ease-out; }
+@keyframes sweep-fade { from { opacity: 0; } }
+/* The Sweep's buttons sit on a bar at the window's foot whose line never moves, what's above it taking the room left;
+   Capture and the toasts float above it (--bar). */
+.page:has(> .bar) { min-height: 100%; display: flex; flex-direction: column; padding-bottom: 0; }
+.page > :has(+ .bar) { flex: 1; padding-bottom: 28px; }
+.bar {
+  position: sticky; bottom: 0; z-index: 3; display: flex; align-items: center; gap: 10px; min-height: var(--bar); box-sizing: border-box;
+  padding: 16px 0 24px; background: var(--bg); border-top: 1px solid var(--line);
+}
+.app:has(.bar) { --bar: 72px; }
+/* The line over the Sweep's stage: how much is left, over the item; over what the item becomes, the choice picked
+   (.chosen), its face as among the choices (see face): the things made look alike, and a slip of the finger has to
+   show at once. */
+.eyebrow { font-size: 13px; font-weight: calc(600 - var(--thin)); color: var(--c-sweep); margin-bottom: 6px; }
+.chosen { display: flex; align-items: center; gap: 6px; color: var(--fg); margin-bottom: 10px; }
+/* PickList's choices: a bare list like a menu's, its light reaching a little into the margin; no › for a finger. */
+.choices { width: fit-content; max-width: calc(100% + 20px); margin: 0 -10px 6px; }
+.choice { display: flex; align-items: center; gap: 12px; width: 100%; box-sizing: border-box; padding: 8px 18px 8px 4px; text-align: left; }
+.ico { display: inline-flex; }
+.pick-mark { display: inline-flex; margin-right: -8px; color: var(--fg); }
+.pick-mark svg { stroke-width: 2.8; }
+.choice:not(.cur) .pick-mark { visibility: hidden; }
+:root.touch .pick-mark { display: none; }
+:root.touch .choice { padding: 11px 18px 11px 10px; }
+.choice:focus-visible { outline-offset: -2px; }
+/* The letter that picks a choice from the keyboard, underlined as a menu's is (see PickList); none for a finger. */
+.choice u { text-underline-offset: 2px; }
+:root.touch .choice u { text-decoration: none; }
+
+/* ---------- research ---------- */
+/* A question answered (see Chapter): its row, bold until first unfolded, then what was asked, the answer, its
+   sources. */
+.li-title.unread { font-weight: calc(650 - var(--thin)); }
+.chapter { display: flex; flex-direction: column; gap: 10px; padding-bottom: var(--row-y); }
+.prose { line-height: 1.6; }
+.prose :is(p, ul, ol, h3) { margin: 0 0 10px; }
+.prose h3 { margin-top: 16px; font-size: inherit; font-weight: calc(600 - var(--thin)); }
+.prose :is(ul, ol) { padding-left: 22px; }
+/* In a page's list, a browser would draw them as a nested list's circles. */
+.prose ul { list-style-type: disc; }
+.prose li + li { margin-top: 4px; }
+.prose > :first-child { margin-top: 0; }
+.prose > :last-child { margin-bottom: 0; }
+.prose b { font-weight: calc(600 - var(--thin)); }
+.sources { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; }
+/* What opens elsewhere: a source, a web address in typed words (see linked). */
+.sources a, a.link { color: var(--fg-3); text-decoration: none; transition: color .15s; }
+.sources a { display: inline-flex; align-items: center; gap: 5px; }
+a.link { white-space: nowrap; }
+:where(:root:not(.touch)) :is(.sources a, a.link):hover { color: var(--accent); }
+
+/* ---------- the window (Capture), toasts ---------- */
+.scrim { position: fixed; inset: 0; background: var(--scrim); z-index: 50; display: grid; place-items: start center; padding: 9vh 16px 16px; overflow-y: auto; }
+.modal { font-size: 13.5px; width: 100%; max-width: 520px; background: var(--surface); border-radius: var(--r-box); box-shadow: 0 0 0 1px var(--edge), var(--shadow-2); display: flex; flex-direction: column; max-height: 84vh; overflow: hidden; }
+/* A window or open thing holding the keyboard (see the keys) shows no focus ring, nor do words holding it (their pencil
+   shows). */
+[role=dialog]:focus-visible, .editing:focus-visible, .editable:focus-visible { outline: none; }
+.modal-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; padding: 4px 8px 4px 16px; box-sizing: border-box; border-bottom: 1px solid var(--line); }
+.modal-h h2 { margin: 0 0 0 30px; flex: 1; text-align: center; font: 15px/1.3 var(--font-ui); font-weight: calc(650 - var(--thin)); }
+.modal-b { padding: 14px 18px 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
+/* Compact beside the pages, as a Mac's dialogs are: smaller type and controls; so is a thing open in place, among its
+   list's rows. */
+.modal .field { padding: 3px 8px; }
+.modal .btn { padding: 4px 11px; font-size: 13px; }
+/* Kept in sight with a little room around it (see useOpened, useInSight). */
+.editing, :is(.modal-b, .editing) :is(input, textarea, .add-row) { scroll-margin: 12px 0 16px; }
+.modal-f { padding: 10px 18px 12px; display: flex; gap: 8px; align-items: center; border-top: 1px solid var(--line); flex-wrap: wrap; }
+@media (max-width: 600px) {
+  .scrim { place-items: end center; padding: 0; }
+  .modal { max-width: none; border-radius: var(--r-box) var(--r-box) 0 0; max-height: 92vh; }
+  /* The page's own side room. */
+  .modal-b, .modal-f { padding-inline: 16px; }
+}
+.toasts { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(22px + var(--bar, 0px)); z-index: 60; display: flex; flex-direction: column; gap: 8px; align-items: center; width: max-content; max-width: calc(100vw - 32px); }
+.toast {
+  display: flex; align-items: center; gap: 12px; padding: 9px 10px 9px 16px; border-radius: var(--r-box); font-size: 14px;
+  background: rgba(30, 31, 36, .9); color: #fff; border: 1px solid rgba(255, 255, 255, .12);
+  backdrop-filter: blur(12px); box-shadow: 0 10px 30px rgba(0, 0, 0, .35); animation: rise .18s ease-out;
+}
+.toast button { font-weight: calc(600 - var(--thin)); padding: 3px 8px; border-radius: 6px; }
+:where(:root:not(.touch)) .toast button:hover { background: rgba(255, 255, 255, .14); }
+@keyframes rise { from { transform: translateY(8px); opacity: 0; } }
+
+/* ---------- phones ---------- */
+@media (max-width: 899px) {
+  .page { padding: 16px 16px 120px; }
+  .page-h { margin-bottom: 8px; gap: 10px; align-items: center; }
+  .page-h-main { flex: 1 1 150px; }
+  .sweep-title { font-size: 22px; }
+  :root { --inset: 12px; }
+  .panel { margin-bottom: 16px; }
+  .li { gap: 11px; }
+  .list:has(> li > .task-row), .li.task-row { column-gap: 8px; }
+  .task-from, .task-rule, .task-when { font-size: 12.5px; }
+  /* Just over the Capture button (and so over a window's buttons too). After the toasts' own rule, so this one wins. */
+  .toasts { bottom: calc(80px + var(--bar, 0px) + var(--tabs, 0px)); }
+}
+</style>
+
+<div id="app"></div>
+
+<script src="vendor/htm-preact.js" defer></script>
+<script>
+'use strict';
+addEventListener('DOMContentLoaded', () => {
+const { html, render, useState, useEffect, useRef, useLayoutEffect } = htmPreact;
+
+/* ==== Small utilities ==== */
+const root = document.documentElement;
+const cx = (...a) => a.filter(Boolean).join(' ');
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const pad = n => String(n).padStart(2, '0');
+const isoOf = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const parseDay = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+const addDays = (s, n) => { const d = parseDay(s); d.setDate(d.getDate() + n); return isoOf(d); };
+const dayDiff = (a, b) => Math.round((parseDay(b) - parseDay(a)) / 864e5);
+/* SIByL's day starts at the hour Settings says (6 AM until changed): a night's work counts for the day it began, and
+   a new day's things come up then. */
+const todayISO = () => { const d = new Date(); d.setHours(d.getHours() - setting('dayStart')); return isoOf(d); };
+const daysInMonth = d => new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+const isDay = s => /^\d{4}-\d{2}-\d{2}$/.test(s);
+const WD = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const WD_LONG = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0];
+const ordinal = n => n + (n > 10 && n < 14 ? 'th' : ['th', 'st', 'nd', 'rd'][n % 10] || 'th');
+/* Today, Tomorrow or Yesterday; else the weekday in full within the week ahead, else the weekday and date. */
+function fmtDay(s) {
+  const n = dayDiff(todayISO(), s);
+  return n === 0 ? 'Today' : n === 1 ? 'Tomorrow' : n === -1 ? 'Yesterday' : n > 0 && n < 7 ? WD_LONG[parseDay(s).getDay()] : fmtWeekday(s);
+}
+/* A date where the weekday would say nothing more: "15 Nov". */
+function fmtDate(s) { const d = parseDay(s); return `${d.getDate()} ${MON[d.getMonth()]}` + (d.getFullYear() === new Date().getFullYear() ? '' : ' ' + d.getFullYear()); }
+/* A day as "Fri 21 Sep": the Calendar's panes and later days, History's. */
+const fmtWeekday = s => `${WD[parseDay(s).getDay()]} ${fmtDate(s)}`;
+/* Today, Tomorrow or Yesterday: a day fmtDay says in a word. */
+const near = s => Math.abs(dayDiff(todayISO(), s)) < 2;
+/* A pane's day (the Calendar's, History's): "Tomorrow — Fri 6 Nov", "Fri 6 Nov". */
+const paneDay = s => (near(s) ? fmtDay(s) + ' — ' : '') + fmtWeekday(s);
+/* Lines pasted from notes apps often carry bullets or checkboxes. */
+const splitLines = text => text.split('\n')
+  .map(s => s.replace(/^\s*(?:[-*+•·▪◦‣–]\s+)?(?:\[[ xX]?\]\s*)?(?:\d+[.)]\s+)?/, '').trim())
+  .filter(Boolean);
+const oneLine = s => s.replace(/\s+/g, ' ').trim();
+/* A thing's word for a count of it: "1 info", "3 infos". */
+const plural = (n, unit) => +n === 1 ? unit : unit + 's';
+const clip = s => { const t = oneLine(s); return t.length > 36 ? t.slice(0, 35).trimEnd() + '…' : t; };
+const toggleIn = (list, x) => list.includes(x) ? list.filter(y => y !== x) : [...list, x];
+/* The cursor into a box, at n, else at its end. */
+const focusAt = (el, n) => { n ??= el.value.length; el.focus(); el.setSelectionRange(n, n); };
+
+/* ==== Data: a copy on this device, met with the other devices' in Dropbox ==== */
+/* Every doc sits in items under its id, with a kind and updated (ms, when it was last written: where two copies
+   differ, the later wins, see merge). The copy on this device is kept in browser storage (sybil.data), so SIByL
+   opens at once and works offline. gone: what was deleted, by when, kept 30 days so another device's older copy
+   can't bring it back; rev: the version of Dropbox's file this copy last met; unpushed: the changes Dropbox hasn't
+   had yet. */
+const store = { items: {}, gone: {}, rev: null, unpushed: 0 };
+/* What Settings sets, as it is until changed (one doc, settings): the words over the Inbox's box to jog the memory, the
+   hour SIByL's day starts at, and the Weekly review's weekday. */
+const SETTINGS = { tickler: '', dayStart: 6, reviewDay: 6 };
+const setting = k => store.items.settings?.[k] ?? SETTINGS[k];
+const setSetting = (k, v) => put({ ...SETTINGS, ...store.items.settings, id: 'settings', kind: 'settings', [k]: v });
+Object.assign(store, JSON.parse(localStorage.getItem('sybil.data')));
+/* Keeps the copy and shows it. */
+function show() {
+  try { localStorage.setItem('sybil.data', JSON.stringify(store)); }
+  catch { toast('SIByL couldn’t keep this change on this device: its storage is full or blocked.', { bad: true }); }
+  refresh();
+}
+/* body: the doc as it's to be, or null to delete it. soon: the push it asks for (see sync). */
+let soon = 0;
+/* What an action is writing (see undoable): each doc as it was before, kept for its Undo. */
+let writing = null;
+function write(id, body) {
+  if (writing && !(id in writing)) writing[id] = store.items[id] || null;
+  if (body) { store.items[id] = { ...body, updated: Date.now() }; delete store.gone[id]; }
+  else { delete store.items[id]; store.gone[id] = Date.now(); }
+  store.unpushed++;
+  show();
+  clearTimeout(soon);
+  soon = setTimeout(syncNow, 1000);
+}
+const put = it => write(it.id, it);
+const removeItem = id => write(id, null);
+/* fn run, and its Undo: every doc it wrote put back as it was. Within another (a save), that one's Undo puts them back
+   too. */
+function undoable(fn) {
+  const outer = writing;
+  writing = {};
+  fn();
+  const was = Object.entries(writing);
+  writing = outer && { ...writing, ...outer };
+  return () => was.forEach(([id, x]) => x ? put(x) : removeItem(id));
+}
+
+/* ==== Sync: the devices' copies meet in Dropbox ==== */
+/* sybil.json, in SIByL's app folder, holds the copies merged ({ app, items, gone }: a backup's shape, so Restore
+   reads it as it is). A sync pulls and merges it, takes in the folder's other files (gather), then pushes with the
+   rev it merged: if another device wrote in between, Dropbox refuses it and SIByL syncs again. It runs a second
+   after a change, when Dropbox says the folder changed while SIByL is in view (watch), and on coming back into view
+   or online. auth: this device's tokens, false once Dropbox has signed SIByL out (see signOut). */
+/* The app's key: public, as signing in proves who's asking with PKCE, not with a secret. */
+const DROPBOX = '5098lrnrwicuodq';
+let auth = JSON.parse(localStorage.getItem('sybil.dropbox'));
+const keepAuth = a => { auth = a; localStorage.setItem('sybil.dropbox', JSON.stringify(a)); };
+/* Tokens from Dropbox for a grant (signing in, or the refresh token), kept; an access token lasts 4 hours. A refresh
+   token refused (SIByL's access taken back at Dropbox) signs SIByL out. */
+async function getTokens(grant) {
+  const r = await fetch('https://api.dropboxapi.com/oauth2/token', { method: 'POST', body: new URLSearchParams({ client_id: DROPBOX, ...grant }) });
+  if (r.status === 400 && grant.refresh_token) { signOut(false); toast('Dropbox signed SIByL out. Connect it again in Settings.', { bad: true }); }
+  if (!r.ok) throw new Error('Dropbox ' + r.status);
+  const t = await r.json();
+  keepAuth({ refresh: t.refresh_token || auth.refresh, access: t.access_token, expires: Date.now() + t.expires_in * 1000 });
+}
+/* A call to Dropbox's API: host api (its answer JSON), content (a file: its argument in a header, the response
+   itself) or notify (no token). A 409 (a path not found, a rev gone stale) is null; a token refused is renewed once.
+   No answer, a 429 or a 5xx is asked again after 1, 2 and 4 s, so a moment's outage goes unsaid; anything else, or
+   one that lasts, throws. */
+async function dropbox(host, path, arg, body, signal) {
+  const headers = host === 'content' ? { 'Dropbox-API-Arg': JSON.stringify(arg), ...(body && { 'Content-Type': 'application/octet-stream' }) } : { 'Content-Type': 'application/json' };
+  for (let wait = 1, renewed = false; ; wait *= 2) {
+    let r = null;
+    try {
+      if (host !== 'notify') {
+        if (auth.expires < Date.now() + 60000) await getTokens({ grant_type: 'refresh_token', refresh_token: auth.refresh });
+        headers.Authorization = 'Bearer ' + auth.access;
+      }
+      r = await fetch(`https://${host}.dropboxapi.com/2/${path}`, { method: 'POST', headers, body: host === 'content' ? body : JSON.stringify(arg), signal });
+    } catch (e) { if (signal?.aborted || !auth || wait > 4) throw e; }
+    if (r?.status === 401 && !renewed) { renewed = true; auth.expires = 0; continue; }
+    if (r && r.status !== 429 && r.status < 500) {
+      if (r.status === 409) return null;
+      if (!r.ok) throw new Error('Dropbox ' + r.status);
+      return host === 'content' ? r : r.json();
+    }
+    if (wait > 4) throw new Error('Dropbox ' + r.status);
+    await new Promise(go => setTimeout(go, wait * 1000));
+  }
+}
+/* A file's copy merged into this one (its items a list): each doc as last written, unless deleted after that; what was
+   deleted over 30 days ago forgotten. */
+function merge(file, rev) {
+  const theirs = Object.fromEntries(file.items.map(x => [x.id, x])), items = {}, gone = {}, since = Date.now() - 30 * 864e5;
+  for (const id of new Set([...Object.keys(store.items), ...Object.keys(theirs), ...Object.keys(store.gone), ...Object.keys(file.gone)])) {
+    const a = store.items[id], b = theirs[id], doc = !b || a?.updated > b.updated ? a : b, at = Math.max(store.gone[id] || 0, file.gone[id] || 0);
+    if (doc && !(at >= doc.updated)) items[id] = doc;
+    else if (at > since) gone[id] = at;
+  }
+  Object.assign(store, { items, gone, rev });
+  show();
+}
+/* The folder's other files: answers.json, the research routine's answers by question id, each written into its
+   question while it still waits; and inbox/, a file per capture from elsewhere (capture.apk, sybil-add), made Inbox
+   items together and then deleted in one call (one at a time they trickled in a second apart). A file not deleted
+   comes again and is made no second time (see addToInbox). */
+async function gather() {
+  const answers = await dropbox('content', 'files/download', { path: '/answers.json' });
+  if (answers) for (const [id, a] of Object.entries(await answers.json())) if (store.items[id]?.answered === '') patchItem(id, { answer: a.answer, sources: a.sources, answered: a.answered });
+  const files = (await dropbox('api', 'files/list_folder', { path: '/inbox' }))?.entries.filter(f => f['.tag'] === 'file') || [];
+  if (!files.length) return;
+  const texts = await Promise.all(files.map(async f => (await dropbox('content', 'files/download', { path: f.id }))?.text()));
+  files.forEach((f, i) => texts[i] != null && addToInbox(texts[i], Date.parse(f.client_modified), f.name));
+  await dropbox('api', 'files/delete_batch', { entries: files.map(f => ({ path: f.id })) });
+}
+/* Pulls, merges and gathers, then pushes; a push refused (another device wrote first) goes round once more. */
+async function exchange(again) {
+  const got = await dropbox('content', 'files/download', { path: '/sybil.json' });
+  const rev = got && JSON.parse(got.headers.get('Dropbox-API-Result')).rev;
+  if (got && rev !== store.rev) merge(await got.json(), rev);
+  await gather();
+  if (got && !store.unpushed) return;
+  /* This push takes the writes so far, the ones gathered too: they need no push of their own. */
+  clearTimeout(soon);
+  const n = store.unpushed, file = JSON.stringify({ app: 'sybil', items: Object.values(store.items), gone: store.gone });
+  const sent = await dropbox('content', 'files/upload', { path: '/sybil.json', mode: got ? { '.tag': 'update', update: rev } : 'add', mute: true }, file);
+  if (!sent) { if (again) throw new Error('Dropbox kept refusing the push'); return exchange(true); }
+  store.rev = (await sent.json()).rev;
+  store.unpushed -= n;
+  show();
+}
+/* One sync at a time; one asked for meanwhile runs after it. */
+let syncing = null, more = false;
+function sync() {
+  if (syncing) { more = true; return syncing; }
+  return syncing = (async () => {
+    try { do { more = false; await exchange(); } while (more); if (stuck) { stuck = false; refresh(); } } finally { syncing = null; }
+  })();
+}
+/* A sync that failed (see SyncState) is tried again a minute later while SIByL is in view, as well as at the next
+   change, coming back into view and back online. */
+let stuck = false, again = 0;
+function failed() {
+  stuck = true;
+  refresh();
+  clearTimeout(again);
+  again = setTimeout(() => document.hidden || (watching ? syncNow() : watch()), 60000);
+}
+const syncNow = () => auth && sync().catch(failed);
+/* While SIByL is in view: synced, then Dropbox is asked to answer once anything in the folder changes (a device's
+   push, a capture, an answer: longpoll, up to 8 minutes), and synced again. Out of view or failed, it stops. */
+let watching = null;
+async function watch() {
+  if (watching || !auth || document.hidden) return;
+  const me = watching = new AbortController();
+  try {
+    for (let changed = true, cursor; ;) {
+      if (changed) { ({ cursor } = await dropbox('api', 'files/list_folder/get_latest_cursor', { path: '', recursive: true })); await sync(); }
+      const r = await dropbox('notify', 'files/list_folder/longpoll', { cursor, timeout: 480 }, null, me.signal);
+      changed = r.changes;
+      if (r.backoff) await new Promise(go => setTimeout(go, r.backoff * 1000));
+    }
+  } catch { if (!me.signal.aborted) failed(); }
+  if (watching === me) watching = null;
+}
+const unwatch = () => { watching?.abort(); watching = null; };
+/* Signing in (Settings' Connect Dropbox) goes by Dropbox's page, which sends SIByL back with a code (see the start)
+   traded for tokens with PKCE: a secret made for the occasion (sybil.verifier), not one of the app's, proves it's
+   the page that asked. Disconnect forgets the tokens, and Dropbox does too. */
+const home = location.origin + location.pathname;
+const b64url = bytes => btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+async function connect() {
+  const verifier = b64url(crypto.getRandomValues(new Uint8Array(32)));
+  localStorage.setItem('sybil.verifier', verifier);
+  const challenge = b64url(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier))));
+  location.href = 'https://www.dropbox.com/oauth2/authorize?' + new URLSearchParams({ client_id: DROPBOX, response_type: 'code', token_access_type: 'offline', code_challenge: challenge, code_challenge_method: 'S256', redirect_uri: home });
+}
+async function signedIn(code) {
+  try { await getTokens({ grant_type: 'authorization_code', code, code_verifier: localStorage.getItem('sybil.verifier'), redirect_uri: home }); }
+  catch { return toast('Dropbox didn’t let SIByL in. Try Connect Dropbox again.', { bad: true }); }
+  localStorage.removeItem('sybil.verifier');
+  toast('Connected to Dropbox');
+  watch();
+}
+/* By Disconnect (auth null), or by Dropbox (false: the rail says so until SIByL is connected again, so a device that
+   stopped syncing doesn't go unnoticed: see SyncState). */
+const signOut = out => { unwatch(); keepAuth(out); refresh(); };
+function disconnect() {
+  dropbox('api', 'auth/token/revoke', null).catch(() => {});
+  signOut(null);
+}
+
+/* The page's scroller (see .main). */
+const main = () => document.querySelector('.main');
+/* Redraws (once) after any change. */
+let queued = false;
+function refresh() {
+  if (queued) return;
+  queued = true;
+  queueMicrotask(() => {
+    queued = false;
+    render(html`<${App} />`, document.getElementById('app'));
+  });
+}
+
+/* ==== Domain ==== */
+const all = kind => Object.values(store.items).filter(x => x.kind === kind);
+const byCreated = (a, b) => a.created - b.created;
+/* Projects, contexts and questions keep their dragged order, as tasks do among those of their lane (see laneOf); new
+   ones join at the end (see makeThing). */
+const byOrder = (a, b) => a.order - b.order;
+const inOrder = kind => all(kind).sort(byOrder);
+
+function newItem(kind, fields, id = uid()) {
+  const it = { kind, ...fields, id };
+  put(it);
+  return it;
+}
+/* A thing deleted on another device in the meantime stays deleted. */
+function patchItem(id, patch) {
+  const cur = store.items[id];
+  if (cur && Object.keys(patch).some(k => cur[k] !== patch[k])) put({ ...cur, ...patch });
+}
+/* A thing and what's part of it: a project's next action goes and comes back with it. */
+const actionOf = p => all('task').find(r => r.project === p.id);
+const parts = x => [x, actionOf(x)].filter(Boolean);
+/* Deletes of a kind in a row join one toast; many(n) words it. */
+const removeWithUndo = (x, message, many, group) => toast(message, { undo: undoable(() => parts(x).forEach(g => removeItem(g.id))), group, many });
+/* A thing deleted, by its name ("Deleted 3 tasks" once joined). */
+const MANY = { task: 'tasks', inbox: 'items', project: 'projects', context: 'contexts', question: 'questions' };
+const deleteThing = x => removeWithUndo(x, `Deleted “${clip(x.title ?? x.text)}”`, n => `Deleted ${n} ${MANY[x.kind]}`, 'del-' + x.kind);
+/* list with its ith moved in front of its jth, or last (j null); for a drop (see startDrag). */
+const moveBefore = (list, i, j) => { const rest = list.filter((_, k) => k !== i); rest.splice(j == null ? rest.length : j - (j > i), 0, list[i]); return rest; };
+/* Puts it in front of beforeId in list (or last) and saves everyone's new place. */
+function placeInList(list, it, beforeId) {
+  const at = list.findIndex(x => x.id === beforeId);
+  moveBefore(list, list.findIndex(x => x.id === it.id), at < 0 ? null : at).forEach((x, order) => patchItem(x.id, { order }));
+}
+
+/* ----- tasks and how they repeat ----- */
+function occursOn(rep, s) {
+  const d = parseDay(s);
+  switch (rep.type) {
+    case 'daily': return true;
+    case 'weekly': return rep.days.includes(d.getDay());
+    /* Its day of the month, or its weekday as the month counts them (see monthlyWays); every few months from the start.
+       */
+    case 'monthly': {
+      const a = rep.every && parseDay(rep.anchor), date = d.getDate(), end = daysInMonth(d);
+      const on = rep.nth ? d.getDay() === rep.weekday && (rep.nth < 0 ? date + 7 > end : Math.ceil(date / 7) === rep.nth) : date === Math.min(rep.day, end);
+      return on && (!a || ((d.getFullYear() - a.getFullYear()) * 12 + d.getMonth() - a.getMonth()) % rep.every === 0);
+    }
+    case 'yearly': return d.getMonth() + 1 === rep.month && d.getDate() === Math.min(rep.day, daysInMonth(d));
+    case 'interval': { const n = dayDiff(rep.anchor, s); return n >= 0 && n % rep.every === 0; }
+  }
+}
+function nextOccurrence(rep, after) {
+  for (let s = addDays(after, 1); ; s = addDays(s, 1)) if (occursOn(rep, s)) return s;
+}
+const isRepeating = r => r.repeat.type !== 'none';
+/* How a monthly one can follow its start day, said short ("1st Sun"): that date, its weekday as the month counts it
+   (1st to 4th: not every month has a 5th), or the last such one (nth -1). */
+function monthlyWays(s) {
+  const d = parseDay(s), n = Math.ceil(d.getDate() / 7), wd = WD[d.getDay()];
+  return [{ id: 'day', label: ordinal(d.getDate()) }, ...(n < 5 ? [{ id: 'nth', label: `${ordinal(n)} ${wd}` }] : []),
+    ...(d.getDate() + 7 > daysInMonth(d) ? [{ id: 'last', label: `Last ${wd}` }] : [])];
+}
+/* Onto its first occurrence. A repeat ends on a day (until) or after n times (left, this one included). */
+function normalizeTask(r) {
+  const d = parseDay(r.date), type = r.repeat.type;
+  const count = (n, max, none) => Math.max(1, Math.min(max, parseInt(n) || none));
+  const months = count(r.repeat.every, 120, 1);
+  const rule = type === 'daily' ? { type }
+    : type === 'weekly' ? { type, days: [...r.repeat.days].sort() }
+    : type === 'monthly' ? { type, ...(r.repeat.by === 'day' ? { day: d.getDate() } : { weekday: d.getDay(), nth: r.repeat.by === 'last' ? -1 : Math.ceil(d.getDate() / 7) }), ...(months > 1 && { every: months, anchor: r.date }) }
+    : type === 'yearly' ? { type, day: d.getDate(), month: d.getMonth() + 1 }
+    : type === 'interval' ? { type, every: count(r.repeat.every, 365, 2), anchor: r.date }
+    : { type: 'none' };
+  const repeat = type === 'none' ? rule : { ...rule, ...(r.repeat.until ? { until: r.repeat.until } : r.repeat.left && { left: count(r.repeat.left, 999, 1) }) };
+  const date = type === 'none' || occursOn(repeat, r.date) ? r.date : nextOccurrence(repeat, r.date);
+  return { title: r.title, date, repeat, ahead: r.ahead, context: r.context, project: r.project, due: r.due };
+}
+const following = r => nextOccurrence(r.repeat, r.date > todayISO() ? r.date : todayISO());
+/* Only ticking one off uses up a time, so a day missed costs none. */
+const isLast = r => isRepeating(r) && (r.repeat.left === 1 || (r.repeat.until && following(r) > r.repeat.until));
+/* How many days before its day a task shows on Next, or from which day (Custom), kept as days before, so a Tickler's
+   comes as early before each time. */
+const AHEAD = [{ id: 0, label: 'On the day' }, { id: 1, label: 'A day before' }, { id: 3, label: '3 days before' }, { id: 7, label: 'A week before' }, { id: 'custom', label: 'Custom' }];
+/* Daily, Weekdays or Weekends where they fit, else Monday first as TV listings do: runs of three or more as ranges
+   (Mon–Thu), the rest singly (Wed & Thu). A range, and the last day with its &, never break. */
+function dayList(days) {
+  const week = [...days].sort().join();
+  if (week === '0,1,2,3,4,5,6') return 'Daily';
+  if (week === '1,2,3,4,5') return 'Weekdays';
+  if (week === '0,6') return 'Weekends';
+  const runs = [];
+  WEEK_ORDER.forEach((d, i) => {
+    if (!days.includes(d)) return;
+    const run = runs.at(-1);
+    if (run && run.end === i - 1) run.end = i; else runs.push({ start: i, end: i });
+  });
+  const names = runs.flatMap(({ start, end }) => end - start > 1 ? [WD[WEEK_ORDER[start]] + '–\u2060' + WD[WEEK_ORDER[end]]] : WEEK_ORDER.slice(start, end + 1).map(d => WD[d]));
+  return names.length > 1 ? names.slice(0, -1).join(', ') + ' &\u00a0' + names.at(-1) : names[0];
+}
+/* As short as can be: the repeat mark and the day beside it say the rest; how it ends is left to its editor. Its name
+   in the editor (REPEATS), but for a week's days and how many months or days apart. */
+function repeatShort(rep) {
+  if (rep.days?.length > 1) return dayList(rep.days);
+  return rep.every ? `${rep.every} ${rep.type === 'monthly' ? 'months' : 'days'}` : REPEATS.find(x => x.id === rep.type).label;
+}
+/* A day due, as a sentence says it: "due today", "due on Wed 9 Dec". */
+const dueOn = s => 'due ' + (near(s) ? fmtDay(s).toLowerCase() : 'on ' + fmtDay(s));
+/* A task's one day (see kindOf): the day it's late after (see dueOf), by which a list orders it. */
+const dayOf = r => r.due || r.date;
+/* By that day, then as dragged (see dropTask). */
+const byDay = (a, b) => dayOf(a).localeCompare(dayOf(b)) || a.order - b.order;
+/* Ticks in a row join one toast, whose Undo brings back the lot. */
+const DONE_MANY = n => `${n} things done`;
+const doneToast = (msg, undo) => toast(msg, { undo, group: 'done', many: DONE_MANY });
+/* The app's own tasks, not docs: on Next only (NextView), from their day until ticked, each opening the Sweep. Sweep
+   is daily; the Weekly review, on Settings' weekday, goes through the Inbox too, so there's no Sweep while it's on
+   Next nor once it's ticked that day (the user's ask). A doc of kind own, its id the task's, keeps the day each was
+   last ticked for. The Review is due on its latest weekday over half a week after the last tick, so a weekday
+   changed from Saturday to Sunday doesn't bring it back the next day; until then it's due on that last tick, which
+   hides it. */
+const OWN = {
+  sweep: { title: 'Sweep', repeat: () => ({ type: 'daily' }), due: t => ownDay('review', t) ? '' : t },
+  review: { title: 'Weekly review', repeat: () => ({ type: 'weekly', days: [setting('reviewDay')] }),
+    due: t => {
+      const on = addDays(t, -((parseDay(t).getDay() - setting('reviewDay') + 7) % 7)), last = store.items.review?.done;
+      return !last || dayDiff(last, on) > 3 ? on : last;
+    } },
+};
+/* The day an own task is on Next from, '' once ticked. */
+const ownDay = (id, t) => { const d = OWN[id].due(t); return store.items[id]?.done === d ? '' : d; };
+/* History keeps a task ticked for this many days (see HistoryView). */
+const HISTORY_DAYS = 30;
+/* What was done and on which day, for History, but for what repeats (a Tickler is routine: it would bury the rest);
+   those past its days go as another comes. */
+function logDone(r) {
+  if (isRepeating(r)) return;
+  const t = todayISO();
+  newItem('done', { title: r.title, day: t, created: Date.now() });
+  all('done').filter(d => dayDiff(d.day, t) >= HISTORY_DAYS).forEach(d => removeItem(d.id));
+}
+/* A project's next action is ticked only once the next one is set, or the project is done: its project opens where it
+   was, for its next one (see PickEditor), so no project is ever left with nothing next. */
+function completeTask(r) {
+  if (OWN[r.id]) {
+    /* The Weekly review goes through the Inbox too, so it ticks the day's Sweep with it. */
+    const ticks = { [r.id]: r.date, ...(r.id === 'review' && { sweep: todayISO() }) };
+    return doneToast('Done: ' + r.title, undoable(() => { for (const id in ticks) put({ id, kind: 'own', done: ticks[id] }); }));
+  }
+  if (store.items[r.project]) return openThing({ id: r.project, next: true });
+  const last = !isRepeating(r) || isLast(r), next = !last && following(r), left = r.repeat.left;
+  doneToast(last ? `Done: ${clip(r.title)}${isLast(r) ? ', the last one' : ''}` : `${clip(r.title)}: next ${fmtDay(next)}`, undoable(() => {
+    logDone(r);
+    if (last) removeItem(r.id);
+    else patchItem(r.id, { date: next, ...(left && { repeat: { ...r.repeat, left: left - 1 } }) });
+  }));
+}
+/* What a task is ordered among, where it's dragged: those of its day; with none (a next action), its context's. */
+const laneOf = r => dayOf(r) || r.context;
+/* A task dropped (from: its id) in front of another (to; null: last) among those it's ordered with (laneOf); dropped in
+   another pane (lane: a day on the Calendar, a context on Next), it takes that pane's day or context: a drag changes
+   where a task shows, never what it is. */
+function dropTask(from, to, lane) {
+  const undo = undoable(() => {
+    if (lane) patchItem(from, isDay(lane) ? { date: lane } : { context: lane });
+    const it = store.items[from];
+    placeInList(all('task').filter(r => laneOf(r) === laneOf(it)).sort(byOrder), it, to);
+  });
+  if (lane) toast(isDay(lane) ? setFor(store.items[from]) : `Added to ${store.items[lane].title}`, { undo });
+}
+
+/* ----- projects and questions ----- */
+/* Projects and questions, opened in place (PickEditor), in a dragged order (Picks). A project always has one next
+   action (a task with its project) and infos; maybe a due day; maybe on hold (isHeld). A question waits (answered
+   '') for the research routine (see README). more: what a new one starts with; filed: where a new one went; sub: the
+   lines under its name in its list, else its description: a project's day it's held until, then its next action and
+   its first due day (no context: Next shows that, the user's ask). A next action can be missing: a project edited on
+   one device after another deleted it comes back alone. */
+const PICKS = {
+  project: { label: 'Project', more: { infos: [] }, filed: 'Added to Projects', sub: p => { const a = actionOf(p), due = earliest(a?.due, p.due);
+    return [p.hold !== true && isHeld(p) && `Until ${fmtDay(p.hold)}`, a && a.title + (due ? ` (${dueOn(due)})` : '')].filter(Boolean).join('\n'); } },
+  question: { label: 'Question', more: { answer: '', sources: [], answered: '', read: false }, filed: 'Added to Research' },
+};
+/* A task, project, context or question, last in its order. */
+const makeThing = (kind, x) => newItem(kind, { ...PICKS[kind]?.more, ...x, order: Date.now() });
+/* Where a new thing went: a task by its day or context (setFor), anything else to its page. */
+const madeIn = x => PICKS[x.kind]?.filed || setFor(x);
+/* A thing made by its editor (a page's +), saying where it went. */
+const addThing = (kind, x) => { const made = makeThing(kind, x); toast(madeIn(made)); return made; };
+/* A project on hold (hold): by hand (true), or until a day (its next action's Don't show until: see PickEditor), on
+   which it's active again by itself (the user's design: a next action that can't start for months shouldn't sit on
+   Next meanwhile, nor wait on someone to remember to resume it). */
+const isHeld = p => p.hold === true || p.hold > todayISO();
+/* A task of a project on hold: kept for when it's resumed, off Next and the Calendar meanwhile. */
+const onHold = r => store.items[r.project] && isHeld(store.items[r.project]);
+
+/* ----- filing: the Sweep's, and a Someday task made a project ----- */
+/* What a thing becomes (it: an Inbox item the Sweep can't do now, a Someday task): a thing of its own of the kind
+   (o: what its editor made of it), given back as made, or the last of a project's infos (o.id: Which one?).
+   What's made says where it went (madeIn). Undo puts it back (an Inbox item first in the Inbox). */
+function fileItem(it, kind, o) {
+  const was = store.items[o.id];
+  let made;
+  const undo = undoable(() => {
+    if (was) patchItem(was.id, { infos: [...was.infos, it.text] });
+    else made = makeThing(kind, o);
+    removeItem(it.id);
+  });
+  toast(was ? `Added to ${clip(was.title)}` : madeIn(made), { undo });
+  return made;
+}
+
+/* ==== Toasts ==== */
+/* One at a time; a new one replaces it. The same kind of action in quick succession (opts.group) joins the toast
+   showing instead, so its one Undo brings all of them back; opts.many(n) words the joined message. opts.bad: what
+   went wrong, its words in red (see .bad). */
+let shownToast = null, toastTimer = 0;
+function toast(msg, opts = {}) {
+  const prev = shownToast;
+  let t = { ...opts, id: uid(), msg, n: 1 };
+  if (opts.group && prev?.group === opts.group) {
+    const n = prev.n + 1;
+    t = { ...t, id: prev.id, n, msg: opts.many(n), undo: () => { opts.undo(); prev.undo(); } };
+  }
+  shownToast = t;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => dismissToast(t.id), opts.undo ? 10000 : 3800);
+  refresh();
+}
+function dismissToast(id) { if (shownToast?.id === id) { shownToast = null; refresh(); } }
+/* Words typed and then dropped (Esc, a window closed) are said to be, with an Undo that keeps them (keep: what Enter
+   would have done): Esc pressed for Enter lost an edit unnoticed. */
+const notSaved = keep => toast('Not saved', { undo: keep, bad: true });
+
+/* ==== Icons (24px, drawn with a stroke) ==== */
+/* Projects' mark: OmniFocus's flag (of1.jpg, of2.jpg, measured), its pole the flag's colour at its SF Symbol's second
+   layer (64%); in a 28px box. */
+const FLAG = '<rect x="3.79" y="2" width="2.04" height="24" rx="1.02" fill-opacity=".64"/><path d="M6.85 5.57C9.4 3.28 12.98 3.43 15.53 5.32S21.66 7.11 24.21 4.55V16.3C22.17 18.14 18.09 18.44 15.53 17.06S9.4 15.28 6.85 17.06Z"/>';
+/* Next's mark: OmniFocus's High Priority clock (of3.jpg, measured: a hand up, a shorter one to 9, made a touch shorter
+   still: as measured it read long), a disc of its colour, its hands white; in a 28px box. */
+const CLOCK_HANDS = '<path d="M14 5.5V14H8" fill="none" stroke="#fff" stroke-width="2.38" stroke-linecap="round" stroke-linejoin="round"/>';
+/* Inbox's mark: OmniFocus 4's tray (inbox.png, measured from its empty Inbox's picture), its opening cut out
+   (evenodd), in a 28px box as wide as the Calendar's icon and as tall. TRAY_THIN is that picture (the empty Inbox), and
+   OmniFocus's Quick Entry with a plus in it (minimal.png: the Capture button); TRAY, the icon, has walls 2.5 thick
+   for as much ink as the calendar beside it (57% of its box, the calendar's 56%): the picture's thin walls left the
+   icon mostly empty, as OmniFocus draws its own small tray heavier. */
+const TRAY_THIN = 'M21.37 3C24.06 3 24.03 4.14 24.46 6.8L26 16.54L26 21.53C26 24.12 25.26 24.86 22.67 24.86L5.33 24.86C2.74 24.86 2 24.12 2 21.53L2 16.54L3.54 6.8C3.97 4.14 3.94 3 6.63 3L21.37 3ZM20.77 4.72C22.24 4.72 22.21 5.35 22.44 6.8L23.39 13.34C23.55 14.43 23.07 14.76 21.96 14.76L20.77 14.76C19.57 14.76 19.23 15.11 19.23 16.31L19.23 17.61C19.23 18.75 18.93 19.1 17.8 19.1L10.2 19.1C9.07 19.1 8.77 18.75 8.77 17.61L8.77 16.31C8.77 15.11 8.43 14.76 7.23 14.76L6.04 14.76C4.93 14.76 4.45 14.43 4.61 13.34L5.56 6.8C5.79 5.35 5.76 4.72 7.23 4.72L20.77 4.72Z';
+const TRAY = 'M21.37 3C24.06 3 24.03 4.14 24.45 6.8L26 16.54L26 21.53C26 24.12 25.26 24.86 22.67 24.86L5.33 24.86C2.74 24.86 2 24.12 2 21.53L2 16.54L3.55 6.8C3.97 4.14 3.94 3 6.63 3ZM20.91 5.5C21.83 5.5 21.81 5.9 21.95 6.8L22.95 13.1C23.12 14.18 22.64 14.5 21.55 14.5L20.8 14.5C19.63 14.5 19.3 14.83 19.3 16L19.3 16.9C19.3 17.99 18.99 18.3 17.9 18.3L10.1 18.3C9.01 18.3 8.7 17.99 8.7 16.9L8.7 16C8.7 14.83 8.37 14.5 7.2 14.5L6.45 14.5C5.36 14.5 4.88 14.18 5.05 13.1L6.05 6.8C6.19 5.9 6.17 5.5 7.09 5.5Z';
+/* The Calendar's mark: OmniFocus 4's Forecast icon, measured from it: a frame and its days' dots; in a 28px box. */
+const FORECAST = 'M5.25 3h17.5A3.25 3.25 0 0 1 26 6.25v15.5A3.25 3.25 0 0 1 22.75 25H5.25A3.25 3.25 0 0 1 2 21.75V6.25A3.25 3.25 0 0 1 5.25 3ZM6.5 9A2.5 2.5 0 0 0 4 11.5v9A2.5 2.5 0 0 0 6.5 23h15a2.5 2.5 0 0 0 2.5-2.5v-9A2.5 2.5 0 0 0 21.5 9Z';
+const DOTS = '<circle cx="14" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/><circle cx="9" cy="16" r="1.5"/><circle cx="14" cy="16" r="1.5"/><circle cx="19" cy="16" r="1.5"/><circle cx="9" cy="20" r="1.5"/><circle cx="14" cy="20" r="1.5"/>';
+/* Someday's mark: Things 3's Someday box (someday.png, measured): its lid, and under it the box with its handle cut out
+   (evenodd); in a 28px box, as wide as the calendar. */
+const BOX = 'M2.8 3.71H25.2A.8.8 0 0 1 26 4.51V8.63A.8.8 0 0 1 25.2 9.43H2.8A.8.8 0 0 1 2 8.63V4.51A.8.8 0 0 1 2.8 3.71ZM2.87 10.57H25.13A.3.3 0 0 1 25.43 10.87V23.09A1.2 1.2 0 0 1 24.23 24.29H3.77A1.2 1.2 0 0 1 2.57 23.09V10.87A.3.3 0 0 1 2.87 10.57ZM11.14 12.86H16.86A1.14 1.14 0 0 1 16.86 15.14H11.14A1.14 1.14 0 0 1 11.14 12.86Z';
+/* Research's mark: a stack (magazine.png, a Things 3 icon, measured): an isometric tile (a rounded square turned 45°
+   and flattened) over two bands, each the tile moved down less the tile moved down half as far; in a 28px box. */
+const STACK = 'M3.01 7.88L11.57 3.29A3.43 1.84 0 0 1 16.43 3.29L24.99 7.88A3.43 1.84 0 0 1 24.99 10.47L16.43 15.06A3.43 1.84 0 0 1 11.57 15.06L3.01 10.47A3.43 1.84 0 0 1 3.01 7.88ZM2.84 12.79A3.43 1.84 0 0 0 3.01 12.89L11.57 17.47A3.43 1.84 0 0 0 16.43 17.47L24.99 12.89A3.43 1.84 0 0 0 25.16 12.79A3.43 1.84 0 0 1 24.99 15.3L16.43 19.88A3.43 1.84 0 0 1 11.57 19.88L3.01 15.3A3.43 1.84 0 0 1 2.84 12.79ZM2.84 17.62A3.43 1.84 0 0 0 3.01 17.71L11.57 22.29A3.43 1.84 0 0 0 16.43 22.29L24.99 17.71A3.43 1.84 0 0 0 25.16 17.62A3.43 1.84 0 0 1 24.99 20.12L16.43 24.71A3.43 1.84 0 0 1 11.57 24.71L3.01 20.12A3.43 1.84 0 0 1 2.84 17.62Z';
+/* OmniFocus's Clean Up broom in its own measures (x from the handle, y up from the floor); its gradient spans it
+   whole (userSpaceOnUse) so the floor line takes it too. */
+const BROOM_FILL = '<linearGradient id="art-sweep" gradientUnits="userSpaceOnUse" x1="0" y1="-27" x2="0" y2="1"><stop offset="0" stop-color="#c690fd"/><stop offset="1" stop-color="#b276f8"/></linearGradient>';
+const BROOM = '<path d="M-0.61 -17.5L-2.35 -23.92A2.43 2.43 0 1 1 2.35 -23.92L0.61 -17.5ZM-7.58 -12.28V-12.48A7.58 6.8 0 0 1 7.58 -12.48V-12.28ZM2.35 -7.8V0H4.98ZM-10.74 -3.1a0.75 0.75 0 1 0 1.5 0a0.75 0.75 0 1 0 -1.5 0M-12.07 0a0.75 0.75 0 1 0 1.5 0a0.75 0.75 0 1 0 -1.5 0M-9.03 0a0.75 0.75 0 1 0 1.5 0a0.75 0.75 0 1 0 -1.5 0M14.67 -6.2a0.75 0.75 0 1 0 1.5 0a0.75 0.75 0 1 0 -1.5 0M17.78 -6.2a0.75 0.75 0 1 0 1.5 0a0.75 0.75 0 1 0 -1.5 0M13.1 -3.11a0.75 0.75 0 1 0 1.5 0a0.75 0.75 0 1 0 -1.5 0M16.15 -3.11a0.75 0.75 0 1 0 1.5 0a0.75 0.75 0 1 0 -1.5 0M14.73 0a0.75 0.75 0 1 0 1.5 0a0.75 0.75 0 1 0 -1.5 0" fill="url(#art-sweep)"/>'
+  + '<path d="M-6.94 -12.28Q-6.94 -6.14 -5.48 0H11.1M6.84 -12.28Q7.4 -6.14 10.3 0" fill="none" stroke="url(#art-sweep)" stroke-width="1.48" stroke-linecap="round" stroke-linejoin="round"/>';
+/* A section's mark (in its 28px box) as an icon: solid, in the icon's colour (lined, below, the other way round). */
+const solid = svg => `<g fill="currentColor" stroke="none" transform="scale(${24 / 28})">${svg}</g>`;
+const ICONS = {
+  /* Capture: OmniFocus's Quick Entry (minimal.png, measured), the thin tray with a plus in its opening. */
+  capture: solid(`<path fill-rule="evenodd" d="${TRAY_THIN}"/><path d="M14 7.03v8.74M9.63 11.4h8.74" stroke="currentColor" stroke-width="1.22"/>`),
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  pencil: '<path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/>',
+  check: '<path d="M20 6 9 17l-5-5"/>',
+  x: '<path d="M18 6 6 18M6 6l12 12"/>',
+  /* An open thing's Delete: trash.png's can (measured, its pixels the units: 20 by 29), solid, its slits cut out; 21
+     of the box tall, so at 32px it stands 28px beside a 32px circle. */
+  can: '<g fill="currentColor" stroke="none" transform="translate(12 12) scale(.7167) translate(-36 -28.35)"><path d="M33.5 13.7h5a1 1 0 0 1 1 1V17h-7v-2.3a1 1 0 0 1 1-1ZM27 16h18a1 1 0 0 1 1 1v3H26v-3a1 1 0 0 1 1-1Z"/><path fill-rule="evenodd" d="M27 21h18v20.2a1.8 1.8 0 0 1-1.8 1.8H28.8a1.8 1.8 0 0 1-1.8-1.8ZM30.2 24.4a.8.8 0 0 1 1.6 0v15.2a.8.8 0 0 1-1.6 0ZM35.2 24.4a.8.8 0 0 1 1.6 0v15.2a.8.8 0 0 1-1.6 0ZM40.2 24.4a.8.8 0 0 1 1.6 0v15.2a.8.8 0 0 1-1.6 0Z"/></g>',
+  trash: '<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>',
+  left: '<path d="m15 18-6-6 6-6"/>',
+  right: '<path d="m9 18 6-6-6-6"/>',
+  up: '<path d="m5 12 7-7 7 7"/><path d="M12 19V5"/>',
+  /* What comes next: a project's next action. */
+  next: '<path d="M5 12h14M13 6l6 6-6 6"/>',
+  stop: '<rect x="3" y="3" width="18" height="18" rx="3" fill="currentColor" stroke="none"/>',
+  /* How a repeat ends: the chequered flag of a finish line. */
+  finish: '<path d="M5 22V2h16v12H5"/><path fill="currentColor" stroke="none" d="M5 2h4v4H5zM13 2h4v4h-4zM9 6h4v4H9zM17 6h4v4h-4zM5 10h4v4H5zM13 10h4v4h-4z"/>',
+  calendar: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+  history: '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/>',
+  /* A project's infos. */
+  info: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',
+  /* When it shows on Next. */
+  bell: '<path d="M10.27 21a2 2 0 0 0 3.46 0"/><path d="M3.26 15.33A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.67C19.41 13.96 18 12.5 18 8A6 6 0 0 0 6 8c0 4.5-1.41 5.96-2.74 7.33"/>',
+  gear: '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
+  forecast: solid(`<path fill-rule="evenodd" d="${FORECAST}"/>${DOTS}`),
+  repeat: '<path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/>',
+  stack: solid(`<path d="${STACK}"/>`),
+  someday: solid(`<path fill-rule="evenodd" d="${BOX}"/>`),
+  project: solid(FLAG),
+  clockDisc: solid(`<circle cx="14" cy="14" r="12"/>${CLOCK_HANDS}`),
+  /* A task's context, as OmniFocus marks it: where it's seen, on Next. */
+  eye: '<path d="M2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 19.88 0 1 1 0 0 1 0 .7 10.75 10.75 0 0 1-19.88 0"/><circle cx="12" cy="12" r="3"/>',
+  /* Putting a project on hold (its ring while it goes on), and Don't show until. */
+  pause: '<path d="M9 6v12M15 6v12"/>',
+  /* Resume: the hold's other face. */
+  play: '<path d="M8.5 6v12l9.5-6z"/>',
+  /* A source, opening elsewhere. */
+  link: '<path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>',
+};
+const Icon = ({ name, size = 18 }) => html`<svg width=${size} height=${size} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" dangerouslySetInnerHTML=${{ __html: ICONS[name] }}></svg>`;
+
+/* Section icons, flat, as OmniFocus's (Inbox's and the Calendar's from OmniFocus 4's Inbox and Forecast, Projects'
+   its flag), Research's a Things 3 stack and Someday's its box, the Sweep's the broom; Next's disc as wide as the
+   calendar: smaller, a round mark read smaller than the square ones and seemed to leave room beside it. Each colour
+   is a gradient (see ART_DEFS) a hair either side of its colour in OmniFocus 4's dark look (of1.jpg; where that's as
+   its light one's, forecast.png's and of3.jpg's; Someday's in Things 3). */
+const ART_GRADS = { next: ['#df5f73', '#d44f64'], inbox: ['#70709d', '#676795'],
+  calendar: ['#a74c43', '#9f463c'], ticklers: ['#18a69e', '#0a9289'],
+  projects: ['#f4b146', '#f0a93a'], someday: ['#cec07f', '#c8ba77'], research: ['#6663eb', '#5e5be9'] };
+/* A mark drawn in lines (one of ICONS, stroke its colour), scaled up to the others' size, its lines 2.5 wide once
+   scaled: thinner read lighter than the solid marks beside it. */
+const lined = (icon, stroke) => `<g transform="translate(14 14) scale(1.1) translate(-12 -12)" fill="none" ${stroke} stroke-width="${2.5 / 1.1}" stroke-linecap="round" stroke-linejoin="round">${ICONS[icon]}</g>`;
+const ART = {
+  next: `<circle cx="14" cy="14" r="12" fill="url(#art-next)"/>${CLOCK_HANDS}`,
+  inbox: `<path fill-rule="evenodd" d="${TRAY}" fill="url(#art-inbox)"/>`,
+  /* As wide as the square, centred on it. */
+  sweep: `<g transform="translate(13.26 23.76) scale(.7368)">${BROOM}</g>`,
+  calendar: `<path fill-rule="evenodd" d="${FORECAST}" fill="url(#art-calendar)"/><g fill="#ef5c49">${DOTS}</g>`,
+  /* What repeats: the repeat mark. */
+  ticklers: lined('repeat', 'stroke="url(#art-ticklers)"'),
+  projects: `<g fill="url(#art-projects)">${FLAG}</g>`,
+  someday: `<path fill-rule="evenodd" d="${BOX}" fill="url(#art-someday)"/>`,
+  /* History's and Settings' pages: their marks in their grey (a style: a CSS colour on .art-ico would reach every
+     page's icon). */
+  history: lined('history', 'style="stroke: var(--c-tools)"'),
+  settings: lined('gear', 'style="stroke: var(--c-tools)"'),
+  research: `<path d="${STACK}" fill="url(#art-research)"/>`,
+};
+const Art = ({ id, size }) => html`<svg class="art-ico" width=${size} height=${size} viewBox="0 0 28 28" aria-hidden="true" dangerouslySetInnerHTML=${{ __html: ART[id] }}></svg>`;
+/* Gradients have to live in a rendered SVG (display: none wouldn't paint them). */
+const ART_DEFS = '<defs>' + Object.entries(ART_GRADS).map(([k, [a, b]]) =>
+  `<linearGradient id="art-${k}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient>`).join('') + BROOM_FILL + '</defs>';
+
+/* ==== How presses, hovers and drags behave everywhere ==== */
+/* A press elsewhere closes what's open (a field saving on blur, a panel) as the press lands, just before its click:
+   closing on the press itself moved things under the pointer and the click missed. A press with no click (a drag, a
+   scroll) closes it as it ends. */
+let pressing = false;
+const afterPress = [];
+function settlePress() { pressing = false; afterPress.splice(0).forEach(fn => fn()); }
+function onPressEnd(fn) { if (pressing) afterPress.push(fn); else fn(); }
+addEventListener('pointerdown', () => { pressing = true; }, true);
+addEventListener('click', settlePress, true);
+addEventListener('pointerup', e => setTimeout(settlePress, e.pointerType === 'mouse' ? 0 : 400), true);
+addEventListener('pointercancel', settlePress, true);
+addEventListener('keydown', settlePress, true);
+
+/* What's open (a window, a thing open in place, a row tapped open), newest last: Esc closes the newest (close), Enter
+   is its done where it has one (see the keys), a browser's or phone's Back its back, else its close. A truthy open
+   makes it a layer, a new open the newest again. */
+const layers = [];
+function useLayer(open, close, done, back) {
+  const me = useRef(null);
+  me.current = { close, done, back };
+  useEffect(() => {
+    if (!open) return;
+    layers.push(me);
+    return () => layers.splice(layers.indexOf(me), 1);
+  }, [open]);
+}
+
+/* What floats over the page (a window, a toast, the Capture button): a press there leaves what's open on the page as
+   it was, as C does (the Capture button folded the answer being read). */
+const OVER = '[role=dialog], .toasts, .fab';
+/* A click outside el (not on what floats over the page) calls fn(click) as the click lands, before what it lands on
+   acts (another row opening waits for this one to close); while on. el may be gone a moment sooner (what it shows
+   deleted). */
+function useClickAway(el, on, fn) {
+  const act = useRef(null);
+  act.current = fn;
+  useEffect(() => {
+    if (!on) return;
+    const away = e => { if (el.current && !el.current.contains(e.target) && !e.target.closest(OVER)) act.current(e); };
+    document.addEventListener('click', away, true);
+    return () => document.removeEventListener('click', away, true);
+  }, [on]);
+}
+
+/* Enter is done (Shift + Enter starts a line in a box taking several), Ctrl or ⌘ + Enter goes on to the Done of what's
+   open. Esc lets go of the box before anything around it. */
+const typing = ({ done, esc }) => e => {
+  const mod = e.ctrlKey || e.metaKey;
+  if (e.key === 'Escape' && esc) { e.preventDefault(); e.stopPropagation(); esc(e); }
+  else if (e.key === 'Enter' && done && (mod || !e.shiftKey || e.target.matches('input, [enterkeyhint=done]'))) { if (!mod) e.preventDefault(); done(e); }
+};
+
+/* A button pressed with a mouse or finger hands the keyboard to the window or open thing it's in, else to nothing:
+   Firefox and phones leave it on the button, so the next key pressed it again or lit a focus ring on it, and a window
+   closing gave it back with a ring. Words that open for editing keep it, as a box does, for Enter; their pencil shows
+   instead of a ring. A press by the keyboard (detail 0) leaves it, for Tab. */
+const handBack = el => { const w = el.closest('[role=dialog], .editing'); if (w) w.focus({ preventScroll: true }); else el.blur(); };
+addEventListener('click', e => { const el = document.activeElement; if (e.detail && el.matches('button')) handBack(el); });
+
+/* Mouse or finger, judged by the input actually used: some phones claim (hover: hover), which would hide hover-only
+   controls for good. .touch on the root shows them. */
+root.classList.toggle('touch', navigator.maxTouchPoints > 0 || matchMedia('(hover: none)').matches);
+addEventListener('pointerdown', e => root.classList.toggle('touch', e.pointerType !== 'mouse'), true);
+addEventListener('pointermove', e => { if (e.pointerType === 'mouse') root.classList.remove('touch'); }, true);
+const touching = () => root.classList.contains('touch');
+/* Keyboard or pointer, by the last one used: .keyed on the root while it's the keyboard (rings, a dropdown keeping it).
+   */
+addEventListener('keydown', () => root.classList.add('keyed'), true);
+addEventListener('pointerdown', () => root.classList.remove('keyed'), true);
+const keyed = () => root.classList.contains('keyed');
+
+/* A row that opens on a click (opens(fn)) ignores clicks on its controls, judged by the click's path: a control's
+   action may redraw the list first (a thing done), and the row then took the click as its own. */
+const opens = fn => e => { if (!e.composedPath().some(n => n.nodeType === 1 && n.matches('button, a, input, textarea, .edit-hint'))) fn(e); };
+
+/* For a mouse resting on its button or the keyboard on it, never a finger; a press, scroll or leaving hides it. */
+const tipEl = Object.assign(document.createElement('div'), { className: 'tip', ariaHidden: 'true' });
+document.body.append(tipEl);
+let tipFor = null;
+function showTip(el) {
+  if (touching()) return;
+  tipFor = el;
+  tipEl.textContent = el.dataset.tip;
+  tipEl.className = 'tip';
+  const r = el.getBoundingClientRect(), half = tipEl.offsetWidth / 2;
+  const under = r.top - 6 - tipEl.offsetHeight < 4;
+  tipEl.classList.toggle('under', under);
+  tipEl.style.left = Math.min(Math.max(r.left + r.width / 2, half + 8), innerWidth - half - 8) + 'px';
+  tipEl.style.top = (under ? r.bottom + 6 : r.top - 6) + 'px';
+  requestAnimationFrame(() => { if (tipFor === el) tipEl.classList.add('on'); });
+}
+function hideTip() { tipFor = null; tipEl.classList.remove('on'); }
+document.addEventListener('pointerover', e => {
+  if (e.pointerType !== 'mouse') return;
+  const el = e.target.closest('[data-tip]');
+  if (el !== tipFor) el ? showTip(el) : hideTip();
+});
+document.addEventListener('focusin', e => { const el = e.target.closest('[data-tip]'); if (el && keyed()) showTip(el); });
+document.addEventListener('focusout', hideTip);
+document.addEventListener('pointerdown', hideTip, true);
+addEventListener('scroll', hideTip, true);
+
+/* Drag to rearrange, by mouse or finger, within the item's list ([data-zone]), among its [data-key]s: not those of a
+   list inside it (an open project's infos, a zone of its own). A finger rests a moment first so a swipe still scrolls.
+   onDrop(key, lane): held over a day ([data-into] its date: the Calendar's strip), last on that day; else in front of
+   the row it landed before (null: last), among those of its own [data-lane] and [data-set] (a task's: see laneOf). A
+   zone of panes ([data-lane] children: the Calendar's days, Next's contexts) takes a drop only in one of them: in
+   another's, among that one's rows, whose lane is then lane, or, with none of them, last (Future's '' takes none).
+   Nothing lands under what sticks over the scroller (scroll-padding: the Calendar's strip). */
+let drag = null;
+let quietClicksUntil = 0;
+addEventListener('click', e => { if (Date.now() < quietClicksUntil) { e.preventDefault(); e.stopPropagation(); } }, true);
+function scrollerOf(el) {
+  for (; el !== document.body; el = el.parentElement) {
+    const o = getComputedStyle(el).overflowY;
+    if ((o === 'auto' || o === 'scroll') && el.scrollHeight > el.clientHeight) return el;
+  }
+  return null;
+}
+function startDrag(e, onDrop) {
+  const src = e.currentTarget.closest('[data-key]'), li = src.closest('li');
+  const zone = src.closest('[data-zone]');
+  /* A press in a box being typed in (words renamed in place) selects in it. */
+  if (drag || e.target.closest('input, textarea') || (e.pointerType === 'mouse' && e.button !== 0)) return;
+  const id = e.pointerId, touch = e.pointerType !== 'mouse';
+  const x0 = e.clientX, y0 = e.clientY;
+  const d = drag = { live: false, x: x0, y: y0 };
+  const box = scrollerOf(src);
+  /* aim: where it would go, as onDrop's arguments; on: the day it would go to; held: since when it's been at an edge
+     (see tick). */
+  let ghost, line, aim = null, on = null, raf = 0, dx = 0, dy = 0, held = 0;
+  const toLane = lane => lane !== src.dataset.lane ? lane : undefined;
+  /* The scroller's edges, less what sticks over them (a page's header and the Calendar's strip, the Sweep's bar). */
+  const edges = () => { const r = box.getBoundingClientRect(), s = getComputedStyle(box); return [r.top + (parseFloat(s.scrollPaddingTop) || 0), r.bottom - (parseFloat(s.scrollPaddingBottom) || 0)]; };
+
+  const follow = () => {
+    ghost.style.transform = `translate(${d.x - dx}px, ${d.y - dy}px)`;
+    on?.classList.remove('drop-on');
+    on = aim = null;
+    line.style.display = 'none';
+    if (!zone.contains(document.elementFromPoint(d.x, d.y))) return;
+    const keys = [...zone.querySelectorAll('[data-key]')].filter(k => !li.contains(k) && k.closest('[data-zone]') === zone);
+    on = [...zone.querySelectorAll('[data-into]')].find(k => { const r = k.getBoundingClientRect(); return d.x >= r.left && d.x < r.right && d.y > r.top && d.y < r.bottom; });
+    if (on) { on.classList.add('drop-on'); aim = [null, toLane(on.dataset.into)]; return; }
+    if (box && d.y < edges()[0]) return;
+    const panes = [...zone.querySelectorAll(':scope > [data-lane]')], pane = panes.findLast(p => p.getBoundingClientRect().top <= d.y);
+    if (panes.length && !pane) return;
+    const lane = pane && !pane.contains(src) ? pane.dataset.lane : src.dataset.lane;
+    const rows = keys.filter(k => k.dataset.lane === lane && k.dataset.set === src.dataset.set), rects = rows.map(k => k.getBoundingClientRect());
+    const show = (r, y) => Object.assign(line.style, { display: 'block', left: r.left + 'px', width: r.width + 'px', top: y - 1 + 'px' });
+    /* Another pane with none of the rows it's ordered among (on Next: its next actions with no day, or its tasks of
+       one day) takes it last, where its sort shows it: the line under the pane's last row (a next action went into no
+       pane of only dated tasks). */
+    if (!rows.length) {
+      const r = lane && lane !== src.dataset.lane ? keys.filter(k => pane.contains(k)).at(-1)?.getBoundingClientRect() : null;
+      if (r) { aim = [null, lane]; show(r, r.bottom); }
+      return;
+    }
+    let i = 0;
+    while (i < rows.length && rects[i].top + rects[i].height / 2 < d.y) i++;
+    aim = [rows[i] ? rows[i].dataset.key : null, toLane(lane)];
+    const r = rects[i] || rects[i - 1];
+    show(r, rects[i] ? r.top : r.bottom);
+  };
+  /* Held at the scroller's edge (or past it, over what sticks there) a moment, the page scrolls that way: not as it
+     passes on its way to the Calendar's days (that scrolled a long page to its top first), nor while held over one. */
+  const tick = now => {
+    if (box) {
+      const [top, bottom] = edges(), edge = 48;
+      const v = on ? 0 : d.y < top + edge ? d.y - top - edge : d.y > bottom - edge ? d.y - bottom + edge : 0;
+      if (!v) held = 0;
+      else if (!held) held = now;
+      else if (now - held > 400) { box.scrollTop += Math.max(-18, Math.min(18, v / 3)); follow(); }
+    }
+    raf = requestAnimationFrame(tick);
+  };
+  const goLive = () => {
+    d.live = true;
+    const r = src.getBoundingClientRect();
+    dx = x0 - r.left; dy = y0 - r.top;
+    ghost = src.cloneNode(true);
+    ghost.classList.add('drag-ghost');
+    ghost.removeAttribute('data-key');
+    ghost.style.width = r.width + 'px';
+    /* A task's row, laid on its list's columns (the list its li is in), keeps them away from it. */
+    ghost.style.gridTemplateColumns = getComputedStyle(li.parentElement).gridTemplateColumns;
+    line = Object.assign(document.createElement('div'), { className: 'drop-line' });
+    document.body.append(ghost, line);
+    src.classList.add('drag-src');
+    document.body.classList.add('dragging');
+    /* For a row tapped open (see useTapped), which may be the one carried off. */
+    dispatchEvent(new Event('lift'));
+    if (touch) navigator.vibrate?.(8);
+    follow();
+    raf = requestAnimationFrame(tick);
+  };
+  const end = drop => {
+    clearTimeout(hold);
+    cancelAnimationFrame(raf);
+    listening.abort();
+    drag = null;
+    if (!d.live) return;
+    quietClicksUntil = Date.now() + 400;
+    ghost.remove();
+    line.remove();
+    src.classList.remove('drag-src');
+    on?.classList.remove('drop-on');
+    document.body.classList.remove('dragging');
+    if (drop && aim) onDrop(...aim);
+  };
+  const move = ev => {
+    if (ev.pointerId !== id) return;
+    d.x = ev.clientX; d.y = ev.clientY;
+    if (d.live) return follow();
+    const far = Math.hypot(d.x - x0, d.y - y0);
+    if (touch) { if (far > 8) end(false); }
+    else if (far > 4) goLive();
+  };
+  const up = ev => { if (ev.pointerId === id) end(true); };
+  const cancel = ev => { if (ev.pointerId === id) end(false); };
+  const esc = ev => { if (ev.key === 'Escape' && d.live) { ev.preventDefault(); ev.stopPropagation(); end(false); } };
+  const hold = touch ? setTimeout(goLive, 320) : 0;
+  const listening = new AbortController(), signal = listening.signal;
+  addEventListener('pointermove', move, { signal });
+  addEventListener('pointerup', up, { signal });
+  addEventListener('pointercancel', cancel, { signal });
+  addEventListener('keydown', esc, { capture: true, signal });
+  if (touch) addEventListener('contextmenu', ev => ev.preventDefault(), { capture: true, signal });
+}
+/* What drags (key: its [data-key]) and what its drop does; once a drag is under way, the finger moves it instead of
+   the page. */
+const draggable = (key, onDrop) => ({ 'data-key': key, onPointerDown: e => startDrag(e, onDrop), onTouchMove: e => { if (drag?.live) e.preventDefault(); } });
+
+/* ==== Shared components ==== */
+/* A page's +: a new thing of the page's kind (Shift + N presses it: see the keys). */
+const AddButton = ({ label, onClick }) => html`<button class="add-btn" aria-label=${label} data-tip=${label} data-kbd="new" onClick=${onClick}><${Icon} name="plus" /></button>`;
+const DoneButton = ({ onClick, label, due }) => html`<button class=${cx('done-btn', due)} aria-label=${label} onClick=${onClick}><${Icon} name="check" size=${15} /></button>`;
+/* How late a task is, by the day it's due: on it (today) or past it (overdue), every task alike, so the eye tells
+   what must be done today from what can wait (the user's ask). */
+const dueOf = r => { const d = dayOf(r); return d && (d < todayISO() ? 'overdue' : d === todayISO() && 'today'); };
+/* Deletes go through removeWithUndo, so it asks nothing. A line's trash, a Someday task's (its row is an Inbox
+   item's), an answered question's (unfolded); a thing open in place has its Delete (DeleteButton). None on another
+   thing's list row, so a slip there can't delete one unnoticed. */
+const Trash = ({ label, tip = 'Delete', cls, onClick }) => html`<button class=${cx('icon-btn danger', cls)} aria-label=${label} data-tip=${tip} onClick=${onClick}><${Icon} name="trash" size=${15} /></button>`;
+/* On a press, keeps the cursor in the field being typed in. */
+const holdFocus = e => e.preventDefault();
+
+/* A box that grows with its words, measured again as its width changes too (a phone turned, a window resized): measured
+   at the old width, it kept that width's wrapped height. line: one line of words that wraps, where Enter is Done (a
+   phone's key says so) and a pasted break becomes a space. Measuring resets it to its rows for a moment, which would
+   pull up a page scrolled to its end: the scroll is kept. */
+function AutoTextarea({ value, onInput, inputRef, line, ...rest }) {
+  const own = useRef(null);
+  const ref = inputRef || own;
+  const fit = () => {
+    const el = ref.current, box = scrollerOf(el), top = box && box.scrollTop;
+    el.style.height = '';
+    if (el.scrollHeight > el.clientHeight) el.style.height = el.scrollHeight + el.offsetHeight - el.clientHeight + 'px';
+    if (box) box.scrollTop = top;
+  };
+  useLayoutEffect(fit, [value, rest.placeholder]);
+  useEffect(() => {
+    const el = ref.current;
+    let width = el.clientWidth;
+    const watch = new ResizeObserver(() => { if (el.clientWidth !== width) { width = el.clientWidth; fit(); } });
+    watch.observe(el);
+    return () => watch.disconnect();
+  }, []);
+  const input = e => { if (line && e.target.value.includes('\n')) e.target.value = e.target.value.replace(/\s*\n\s*/g, ' '); onInput(e); };
+  return html`<textarea ref=${ref} rows="1" value=${value} enterkeyhint=${line && 'done'} onInput=${input} ...${rest}></textarea>`;
+}
+
+/* A one-line name box (words edited in place): Enter or a press elsewhere keeps a changed name with words in it, Esc
+   drops it (notSaved). A press elsewhere keeps it as the press lands (onPressEnd), so nothing folds up under the
+   pointer; closed stays closed, so a blur on removal can't keep it twice. */
+function KeepBox({ value, onSave, onClose, ...rest }) {
+  const [draft, setDraft] = useState(value);
+  const ref = useRef(null), closed = useRef(false);
+  useEffect(() => focusAt(ref.current), []);
+  const finish = keep => {
+    if (closed.current) return;
+    closed.current = true;
+    onClose();
+    const v = oneLine(draft);
+    if (v && v !== value.trim()) keep ? onSave(v) : notSaved(() => onSave(v));
+  };
+  return html`<${AutoTextarea} line inputRef=${ref} value=${draft} onInput=${e => setDraft(e.target.value)} onBlur=${() => onPressEnd(() => finish(true))}
+    onKeyDown=${typing({ done: () => finish(true), esc: () => finish(false) })} ...${rest} />`;
+}
+
+/* Typed words as they show, a web address in them as the link mark and its site's name, opening elsewhere (the
+   address itself is noise to read); the words around it kept. */
+const linked = s => s.split(/(https?:\/\/\S*[^\s.,;:!?)'"’”])/).map((p, i) => i % 2
+  ? html`<a class="link" href=${p} target="_blank" rel="noopener noreferrer"><${Icon} name="link" size=${12} />${p.replace(/^https?:\/\/(www\.)?/, '').split(/[/?#]/)[0]}</a>` : p);
+/* Words and their pencil (see .edit-hint). */
+const pencil = props => html`<span class="edit-hint" aria-hidden="true" ...${props}><${Icon} name="pencil" /></span>`;
+const pencilled = words => html`${pencil()}<span class="edit-words">${linked(words.trimEnd())}</span>`;
+/* Words open for editing one way everywhere: pencil, double-click or Enter, never a single click (that opened them by
+   accident in lists, and on taps while scrolling). */
+function EditableText({ value, cls, onSave }) {
+  const [editing, setEditing] = useState(false);
+  const edit = () => setEditing(true);
+  if (editing) return html`<${KeepBox} value=${value} class=${cx('edit-input', cls)} aria-label="Rename" onSave=${onSave} onClose=${() => setEditing(false)} />`;
+  return html`<div class=${cx('editable', cls)} role="button" tabindex="0" aria-label=${'Rename: ' + value} onDblClick=${edit}
+    onClick=${e => { if (e.target.closest('.edit-hint')) edit(); }} onKeyDown=${e => { if (e.key === 'Enter') { e.preventDefault(); edit(); } }}>${pencilled(value)}</div>`;
+}
+
+/* The cursor into an [autofocus] box, else the keyboard to el itself, so Enter is its Done and Tab goes through it. */
+const takeKeyboard = el => { const first = el.querySelector('[autofocus]'); if (first) focusAt(first); else el.focus({ preventScroll: true }); };
+/* The box being typed in stays wholly in sight, with room around it (scroll-margin), while what's around it grows (an
+   info added, a description growing) or the window shrinks: browsers follow only the caret, and only to the very edge.
+   A phone's keyboard rises, and changes height as its suggestions come and go, and the browser then uncovers the box
+   flush with it, whenever it gets round to it: a single look 450ms on lost that race now and then. So on a touch
+   screen the box is kept in sight again through the next second. scope: where the box is; parts: what grows. */
+function useInSight(scope, parts) {
+  const grew = useRef(null), later = useRef([]);
+  const keep = () => {
+    const el = document.activeElement;
+    if (scope.current.contains(el) && el.matches('input, textarea')) (el.closest('.add-row') || el).scrollIntoView({ block: 'nearest' });
+  };
+  const keepSoon = () => {
+    keep();
+    if (!touching()) return;
+    later.current.forEach(clearTimeout);
+    later.current = [250, 600, 1200].map(ms => setTimeout(keep, ms));
+  };
+  grew.current ??= new ResizeObserver(keepSoon);
+  useLayoutEffect(() => { for (const part of parts.current.children) grew.current.observe(part); });
+  /* Stops watching as it closes, even within the frame before the effect below has run. */
+  useLayoutEffect(() => () => { grew.current.disconnect(); later.current.forEach(clearTimeout); }, []);
+  useEffect(() => {
+    const listening = new AbortController(), signal = listening.signal;
+    scope.current.addEventListener('focusin', keepSoon, { signal });
+    addEventListener('resize', keep, { signal });
+    visualViewport.addEventListener('resize', keep, { signal });
+    return () => listening.abort();
+  }, []);
+}
+
+/* A section's colour (--c-<id>) as what wears it takes it (--t): a page's title, a rail's mark, a splash's word. */
+const tint = id => ({ '--t': `var(--c-${id})` });
+/* A section's name in its colour, after its icon. icon: the page's own, when it isn't its section's (History's and
+   Settings'); title: what it says instead of the section's name. */
+const PageHeader = ({ nav, icon = nav, title, children }) => html`<header class="page-h" style=${tint(nav)}>
+  <div class="page-h-main">
+    <${Art} id=${icon} size=${32} />
+    <h1>${title || NAV.find(n => n.id === nav).label}</h1>
+  </div>
+  ${children && html`<div class="page-actions">${children}</div>`}
+</header>`;
+
+/* A pane, maybe titled. */
+const Block = ({ title, children, ...rest }) => html`<section class="panel" ...${rest}>
+  ${title && html`<header class="panel-h"><h2>${title}</h2></header>`}
+  <div class="panel-b">${children}</div>
+</section>`;
+
+/* A box's ×, at its end, emptying it (a search, a day that can be none); the keyboard stays where it was. */
+const ClearButton = ({ onClick }) => html`<button class="clear-btn" aria-label="Clear" data-tip="Clear" tabindex="-1" onMouseDown=${holdFocus} onClick=${onClick}><span><${Icon} name="x" size=${10} /></span></button>`;
+/* A search box, its × clearing it (Which one?'s, Research's answers); set(words) as they're typed. */
+const Search = ({ value, set, inputRef }) => html`<div class="clear-field">
+  <input ref=${inputRef} class="field" placeholder="Search" aria-label="Search" value=${value} onInput=${e => set(e.target.value)} />
+  ${value && html`<${ClearButton} onClick=${e => { set(''); e.currentTarget.previousElementSibling.focus(); }} />`}</div>`;
+/* A choice that acts rather than picks (Which one?'s New project…). */
+const NEW = '\tnew';
+/* A choice's face: its mark in its colour, then its word (PickList's choices, key the letter that picks it, underlined;
+   the line over what the Sweep makes of the one picked). */
+const face = (o, key) => { const i = key ? o.label.toLowerCase().indexOf(key) : -1; return html`${o.icon && html`<span class="ico" style=${{ color: o.color }}><${Icon} name=${o.icon} size=${17} /></span>`}<span>${i < 0 ? o.label : html`${o.label.slice(0, i)}<u>${o.label[i]}</u>${o.label.slice(i + 1)}`}</span>`; };
+/* One of a list ({ id, label, icon, color }), picked by a click, or by the arrow keys and Enter wherever the keyboard
+   is, unless a window is open over it; a › marks the one Enter picks. Not focus: a highlight that came only
+   with the arrows, and went with a click on nothing, hid that the keys work at all. start: the id the › starts on
+   (the Sweep's choice picked last, so coming back finds it), else the first. With search (a long list: Which one?), a
+   box above narrows it as you type, by name, keeping the choices that act (New project…), the › going to the first one
+   found; without, a letter picks a choice at once, as a menu's does: the first of its word that no choice before it
+   took. */
+function PickList({ options, onPick, search, start }) {
+  const box = useRef(null), live = useRef(null), seek = useRef(null);
+  const [cur, setCur] = useState(() => Math.max(0, options.findIndex(o => o.id === start)));
+  const [q, setQ] = useState('');
+  const found = v => options.filter(o => o.id === NEW || o.label.toLowerCase().includes(v.toLowerCase()));
+  const shown = found(q);
+  const narrow = v => { setQ(v); setCur(v ? Math.max(0, found(v).findIndex(o => o.id !== NEW)) : 0); };
+  const keys = [];
+  if (!search) for (const o of options) keys.push([...o.label.toLowerCase()].find(c => /[a-z]/.test(c) && !keys.includes(c)));
+  /* One listener for its life, reading the list as last drawn: one renewed after each paint missed keys pressed in
+     between (a held arrow skipped). */
+  live.current = { options: shown, onPick, cur, keys };
+  useEffect(() => {
+    const key = e => {
+      const { options, onPick, cur, keys } = live.current, at = e.shiftKey ? -1 : keys.indexOf(e.key.toLowerCase());
+      if (ui.window || e.ctrlKey || e.metaKey || e.altKey || (e.target !== seek.current && e.target.matches('input, textarea, select'))) return;
+      const step = { ArrowDown: 1, ArrowUp: -1 }[e.key];
+      if (step) { e.preventDefault(); setCur(c => (c + step + options.length) % options.length); }
+      /* A control of its own (the item's trash, Back) keeps its Enter. */
+      else if ((e.key === 'Enter' || at >= 0) && !e.repeat && !(e.target.closest('button, a, [role=button]') && !box.current.contains(e.target))) {
+        e.preventDefault(); e.stopImmediatePropagation(); onPick(options[at >= 0 ? at : cur]);
+      }
+    };
+    addEventListener('keydown', key, true);
+    return () => removeEventListener('keydown', key, true);
+  }, []);
+  useLayoutEffect(() => box.current.querySelector('.cur').scrollIntoView({ block: 'nearest' }), [cur]);
+  /* The cursor in the search, with a mouse only: a phone's keyboard would rise over the list. */
+  useEffect(() => { if (search && !touching()) seek.current.focus(); }, []);
+  return html`${search && html`<${Search} value=${q} set=${narrow} inputRef=${seek} />`}
+    <div class="choices" ref=${box}><ul class="list">${shown.map((o, i) => html`<li key=${o.id}>
+    <button class=${cx('choice', i === cur && 'cur')} onFocus=${() => setCur(i)} onClick=${() => onPick(o)}>
+      <span class="pick-mark"><${Icon} name="right" size=${14} /></span>${face(o, keys[i])}</button>
+  </li>`)}</ul></div>`;
+}
+
+/* A page's state (a day picked, a list unfolded, how far the Sweep got) lasts while you're on it, comes back with Back,
+   and for the Sweep survives a reopen (see route); any other way in starts fresh. */
+function useKept(key, initial) {
+  const [bag] = useState(() => route.kept);
+  const [v, setV] = useState(() => key in bag ? bag[key] : (bag[key] = initial));
+  return [v, x => { bag[key] = x; setV(x); }];
+}
+/* One of many. Picked with a pointer, it hands the keyboard back (handBack), as a pressed button does, so Enter is
+   Done; the keyboard's picks keep it. unset: its choice is a none, in grey. */
+const Select = ({ options, value, onChange, unset, ...rest }) => html`<select class=${cx('field', unset && 'unset')} value=${value} ...${rest}
+  onChange=${e => { onChange(e.target.value); if (!keyed()) handBack(e.target); }}>${options.map(o => html`<option key=${o.id} value=${o.id}>${o.label}</option>`)}</select>`;
+/* A day in words, "3 Nov": the browser's own are numbers. Empty, its name (aria-label), in grey. clear: a day that
+   can be none, its × at its end once picked, as a search box's (Chrome on Android's picker can't clear one). */
+const PickField = ({ value, onChange, clear, ...props }) => html`<span class=${cx('field pick', !value && 'unset')}>${value ? fmtDate(value) : props['aria-label']}<input type="date" value=${value} ...${props} onInput=${e => onChange(e.target.value)} />
+  ${clear && value && html`<${ClearButton} onClick=${() => onChange('')} />`}</span>`;
+
+/* A Tickler open in place everywhere (one there is, a new one, what the Sweep makes one; see TaskEditor): its repeat's
+   choices (Once would make it the Calendar's: see kindOf) and how it ends. */
+const REPEATS = [{ id: 'daily', label: 'Daily' }, { id: 'weekly', label: 'Weekly' }, { id: 'monthly', label: 'Monthly' }, { id: 'yearly', label: 'Yearly' }, { id: 'interval', label: 'Every few days' }];
+const ENDS = [{ id: 'never', label: 'Never' }, { id: 'on', label: 'On a day' }, { id: 'after', label: 'After' }];
+/* A thing's row turned into its editor, as OmniFocus opens a row (see ui.open). It holds its changes (draft: all of
+   them, as one string): Enter, a click outside it or a phone's Back saves them (save, given fail(why) to say why it
+   can't; false then, and the row stays), Esc drops them (drop). Nothing changed, nothing is written, and a new one (no
+   old) left untouched by a click elsewhere or Back makes nothing; changes dropped by Esc are notSaved. What was wrong
+   (error) goes at the next change. bar: the Sweep's, whose Save saves it, so no click there does, and whose Back (a
+   phone's too, and Esc) drops it, the item still there to pick again. Opening, it takes the keyboard (Tab goes through
+   it, Enter is its Done) and comes into sight. */
+function useOpened({ draft, old, save, bar }) {
+  const box = useRef(null), latest = useRef(null), begun = useRef(draft);
+  /* What's wrong, kept with the draft it was found in, so it goes at the next change: an effect clearing it at each
+     change ran a frame late, after Enter's save had said it, and wiped it (typing fast, a slow frame). */
+  const [fault, setFault] = useState(null);
+  /* Saved, it says so, or says what its save said (where it went), with an Undo putting back all it wrote (a new
+     project's next action too, made after it said where the project went); joined to the toast before it (a tick), it
+     keeps their joined Undo. Closing with no word felt as if nothing had happened. */
+  const keep = fail => {
+    const shown = shownToast;
+    let ok;
+    const undo = undoable(() => { ok = save(fail); });
+    if (ok && shownToast === shown) toast('Saved', { undo });
+    else if (ok && shownToast.n === 1) { const { msg, ...said } = shownToast; shownToast = null; toast(msg, { ...said, undo }); }
+    return ok;
+  };
+  latest.current = away => (draft === begun.current && (old || away)) || keep(why => setFault([why, draft]));
+  const [ends] = useState(() => {
+    let closed = false;
+    const end = () => { closed = true; setUI({ open: null }); return true; };
+    return { save: away => closed || (!!latest.current(away) && end()), drop: () => closed || end() };
+  });
+  const esc = () => { ends.drop(); if (draft !== begun.current) notSaved(() => keep(why => toast(why, { bad: true }))); };
+  useLayer(true, bar ? ends.drop : esc, () => ends.save(), bar ? ends.drop : () => ends.save(true));
+  useClickAway(box, !bar, () => ends.save(true));
+  useInSight(box, box);
+  useEffect(() => {
+    opened = ends;
+    takeKeyboard(box.current);
+    box.current.scrollIntoView({ block: 'nearest' });
+    /* One taller than the page still shows its name, not under what sticks over it (the Calendar's days). */
+    box.current.querySelector('.li-title').scrollIntoView({ block: 'nearest' });
+    return () => { if (opened === ends) opened = null; };
+  }, []);
+  return { box, error: fault?.[1] === draft ? fault[0] : '', ...ends };
+}
+/* An open thing's name, where it stands in its row: the cursor starts in a new one's empty name, with a mouse only (a
+   phone's keyboard would rise over the page). */
+const Name = ({ label, value, onInput }) => html`<${Words} line class="li-title" autofocus=${!value && !touching()} aria-label=${label} placeholder=${label} value=${value} onInput=${e => onInput(e.target.value)} />`;
+/* Words and their pencil, as the Sweep's item is, until a click (or Tab) types in them; a box while typed in, or while
+   empty (its placeholder says what goes there), its pencil kept before it, so the column of an open thing's marks is
+   never left empty (a new question's, with no other mark, looked indented for nothing). Let go, it turns back to words
+   at once: they sit where the box's text was, so nothing moves under the press. Not while the window is away, which
+   keeps the box's focus. */
+function Words({ value, class: cls, ...box }) {
+  const [held, setHeld] = useState(false);
+  const ref = useRef(null), at = useRef(null);
+  /* The cursor goes where the words were pressed (Tab or the pencil: their end; a link opens instead), counting a link
+     before it as its whole address. */
+  const press = e => {
+    const c = document.caretPositionFromPoint?.(e.clientX, e.clientY), r = document.createRange();
+    if (c && e.currentTarget.contains(c.offsetNode) && !e.target.closest('.edit-hint, a')) {
+      r.setStart(e.currentTarget, 0); r.setEnd(c.offsetNode, c.offset);
+      at.current = r.toString().length + [...r.cloneContents().querySelectorAll('a')].reduce((n, a) => n + a.getAttribute('href').length - a.textContent.length, 0);
+    }
+  };
+  useLayoutEffect(() => { if (held && document.activeElement !== ref.current) focusAt(ref.current, at.current); at.current = null; }, [held]);
+  return held || !value.trim()
+    ? html`<div class=${cx('words', cls)}>${pencil({ onMouseDown: holdFocus, onClick: () => focusAt(ref.current) })}<${AutoTextarea} inputRef=${ref} class="words" value=${value} onFocus=${() => setHeld(true)} onBlur=${() => setHeld(document.activeElement === ref.current)} ...${box} /></div>`
+    : html`<div class=${cx('words', cls)} role="textbox" tabindex="0" aria-label=${box['aria-label']} onPointerDown=${press} onFocus=${() => setHeld(true)}>${pencilled(value)}</div>`;
+}
+/* A task's fields as an editor shows them, all its changes in one object (it: the task there is, or as it starts). A
+   new one is the Calendar's, on tomorrow, unless it starts with no day (Someday's, a next action's, a Tickler's: see
+   TICKLER); it shows on Next on its day or as many days before (see AHEAD). */
+function taskFields(it) {
+  const start = it.date ?? addDays(todayISO(), 1), rep = it.repeat || { type: 'none' }, ahead = it.ahead || 0;
+  return {
+    title: it.title || '', date: start, type: rep.type,
+    days: rep.days || [parseDay(start || lowDay(it)).getDay()],
+    every: rep.type === 'interval' ? rep.every : 2, months: rep.type === 'monthly' && rep.every || 1,
+    by: rep.nth ? (rep.nth < 0 ? 'last' : 'nth') : 'day',
+    end: rep.until ? 'on' : rep.left ? 'after' : 'never', until: rep.until || '', times: rep.left || 10,
+    ahead: AHEAD.some(a => a.id === ahead) ? ahead : 'custom', from: start && addDays(start, -ahead),
+    context: it.context || '', due: it.due || '',
+  };
+}
+/* What a task is, which its editor keeps, offering nothing that would make it another (a repeat once made a task a
+   Tickler). A Tickler repeats: on Next from the day it shows, never on the Calendar. The Calendar's has a day: on
+   the Calendar until it shows. A next action (a project's too) has no day: on Next from the moment it's made, its
+   due only a deadline (the user's design: what's next is already in sight). Someday's has no day, context nor
+   project, and only ever becomes a project. Every kind but Someday's has a context. next: a new one made to wait on
+   Next, not Someday's. */
+const kindOf = it => it.repeat && isRepeating(it) ? 'tickler' : it.date !== '' ? 'calendar' : it.context || it.project || it.next ? 'next' : 'someday';
+/* A new Tickler, on Ticklers and in the Sweep: weekly, with no day yet (its first, as soon as it can). */
+const TICKLER = { date: '', repeat: { type: 'weekly' } };
+/* The first day a task can be given: today, or tomorrow for what the Sweep puts on the Calendar or makes a Tickler
+   (later: what's for today is a next action). */
+const lowDay = it => it.later ? addDays(todayISO(), 1) : todayISO();
+/* How a monthly one follows its day, back to its day of the month when the start can't be the one picked. */
+const monthBy = f => (isDay(f.date) ? monthlyWays(f.date) : []).some(w => w.id === f.by) ? f.by : 'day';
+/* What's wrong with a day picked (v) before the first it can be (low), unless it was so already (was: one missed). */
+const tooEarly = (v, low, was) => v && v < low && v !== was && `Pick a day from ${fmtDay(low).toLowerCase()} on.`;
+/* The latest and the earliest of some days, none ('') left out: the bounds a day picked keeps within, so no two days
+   can disagree (the user's ask). */
+const latest = (...days) => days.filter(Boolean).sort().at(-1) || '';
+const earliest = (...days) => days.filter(Boolean).sort()[0] || '';
+/* The task its fields make (it: as it was, or as it starts, its kind kept: see kindOf), or what's wrong with them.
+   Every task but Someday's has its context, where it's done (the user's call). */
+function taskOf(f, it) {
+  const { title, type, days, every, months, end, until, times, ahead, from, context, due } = f;
+  const low = lowDay(it), kind = kindOf(it), date = type === 'none' ? f.date : f.date || low, shows = kind !== 'next' && f.date, custom = shows && ahead === 'custom';
+  if (!oneLine(title)) return 'Give it a name.';
+  if (kind !== 'someday' && !context) return 'Pick a context.';
+  if (kind === 'calendar' && !date) return 'Pick a day.';
+  const early = tooEarly(date, low, it.date) || tooEarly(due, low, it.due);
+  if (early) return early;
+  if (type === 'weekly' && !days.length) return 'Pick at least one day of the week.';
+  if (type !== 'none' && end === 'on' && !isDay(until)) return 'Pick the last day.';
+  if (custom && !isDay(from)) return 'Pick the day it shows from.';
+  const ends = end === 'on' ? { until } : end === 'after' ? { left: times } : {};
+  const r = normalizeTask({ title: oneLine(title), date, repeat: { type, days, every: type === 'monthly' ? months : every, by: monthBy(f), ...ends },
+    ahead: shows ? ahead : 0, context, project: it.project || '', due });
+  /* As days before the day it falls on (a Tickler's first may come after the one picked). */
+  if (custom) r.ahead = dayDiff(from, r.date);
+  return r.repeat.until && r.date > r.repeat.until ? 'It would end before it starts.' : r.ahead < 0 ? 'It would show after it’s due.' : r;
+}
+/* A field's icon, its label (Ends: a chequered flag; Show: a bell). */
+const mark = (id, icon) => html`<label class="field-mark" for=${id}><${Icon} name=${icon} size=${16} /></label>`;
+/* A day's row, led by its icon: the day (field id) in words, from the first it can be (low) to the last (high, if
+   any), a + before it for the day after the one shown (after low, if it's none or past; none past high), so every
+   day row's + lines up (the user's design: no −); one set before (was) stays pickable; its × clears it, unless it
+   can't be none (required). */
+function DayRow({ id, icon, label, value, low, high, was, set, required }) {
+  const later = addDays(value > low ? value : low, 1);
+  return html`<div class="row">${mark(id, icon)}<button class="btn" aria-label="A day later" disabled=${!!high && later > high} onClick=${() => set(later)}><${Icon} name="plus" size=${14} /></button>
+    <${PickField} id=${id} aria-label=${label} min=${was && was < low ? was : low} max=${high || undefined} value=${value} clear=${!required} onChange=${set} /></div>`;
+}
+/* Where and when a task is done, a row each led by its icon, as its kind has them (kindOf): its context; its day (a
+   Calendar task's or a Tickler's date, a Tickler's blank until given one; a next action's due); when it shows, once
+   there's a day to show before (not a next action's); a Tickler's repeat and how it ends, under a line of their own
+   (the user's ask). What can't be used isn't shown, and no day can be picked that disagrees with another (the user's
+   ask): the day is never before the day it shows from, nor after its repeat's last, nor outside after and before (a
+   project's next action: its hold, its project's due). f, set: its fields (taskFields) and a field's setter; it: as
+   it was. A context not there yet is typed in the dropdown's place (New context…), made and picked as Enter or a
+   press elsewhere keeps it; Esc leaves the one picked. */
+function When({ f, set, it, after, before }) {
+  const { date, type, days, end, until, ahead, from, context } = f;
+  const [naming, setNaming] = useState(false);
+  const kind = kindOf(it), k = kind === 'next' ? 'due' : 'date';
+  /* A count (field k) and its unit: "1 month", "10 times". */
+  const count = (k, max, unit) => html`<input class="field num" type="number" min="1" max=${max} value=${f[k]} aria-label=${`Number of ${unit}s`}
+    style=${{ '--digits': String(f[k]).length || 1 }} onInput=${e => set(k)(e.target.value)} /><span>${plural(f[k], unit)}</span>`;
+  /* Where it's done (Next's panes, in Settings' order). */
+  return html`<div class="row">${mark('task-context', 'eye')}${naming
+      ? html`<${KeepBox} id="task-context" class="field" value="" placeholder="New context" aria-label="New context" onClose=${() => setNaming(false)}
+          onSave=${title => set('context')(makeThing('context', { title }).id)} />`
+      : html`<${Select} id="task-context" aria-label="Context" options=${[{ id: '', label: 'Context' }, ...inOrder('context').map(c => ({ id: c.id, label: c.title })), { id: NEW, label: 'New context…' }]}
+          value=${context} unset=${!context} onChange=${v => v === NEW ? setNaming(true) : set('context')(v)} />`}</div>
+    <${DayRow} id=${'task-' + k} icon="calendar" label=${kind === 'next' ? 'Action due' : 'Due'} value=${f[k]} low=${latest(lowDay(it), after, ahead === 'custom' && from)}
+      high=${earliest(before, type !== 'none' && end === 'on' && until)} was=${it[k]} set=${set(k)} required=${kind === 'calendar'} />
+    ${kind !== 'next' && date && html`<div class="row"><span class="row">${mark('task-ahead', 'bell')}<${Select} id="task-ahead" aria-label="Show in Next" options=${AHEAD} value=${ahead} onChange=${v => set('ahead')(v === 'custom' ? v : +v)} /></span>
+      ${ahead === 'custom' && html`<${PickField} aria-label="Show from" max=${date} value=${from} onChange=${set('from')} />`}</div>`}
+    ${type !== 'none' && html`<div class="when"><div class="row">${mark('task-repeat', 'repeat')}<${Select} id="task-repeat" aria-label="Repeat" options=${REPEATS} value=${type} onChange=${set('type')} />
+      ${type === 'weekly' && html`<div class="days" role="group" aria-label="On">${WEEK_ORDER.map(d => html`<button aria-pressed=${days.includes(d)} class=${cx(days.includes(d) && 'on')} onClick=${() => set('days')(toggleIn(days, d))}>${WD[d].slice(0, 2)}</button>`)}</div>`}
+      ${type === 'monthly' && html`<span class="row">${isDay(date) && html`<${Select} aria-label="On" options=${monthlyWays(date)} value=${monthBy(f)} onChange=${set('by')} />`}<span>Every</span>${count('months', 120, 'month')}</span>`}
+      ${type === 'interval' && html`<span class="row"><span>Every</span>${count('every', 365, 'day')}</span>`}</div>
+      <div class="row"><span class="row">${mark('task-end', 'finish')}<${Select} id="task-end" aria-label="Ends" options=${ENDS} value=${end} onChange=${set('end')} /></span>
+      ${end === 'on' && html`<${PickField} aria-label="Last day" min=${date} value=${until} onChange=${set('until')} />`}
+      ${end === 'after' && html`<span class="row">${count('times', 999, 'time')}</span>`}</div></div>`}`;
+}
+/* A task open in place: one there is (old), or a new one (initial, its file saying how it's made, else addThing; next,
+   later: see kindOf, lowDay). The row's first line keeps its name and circle (one there is, its Delete before it);
+   under them what's wrong, where and when it's done (When). One set before stays (a thing missed). Someday's has no
+   when: it becomes a project or nothing, its ring (Make it a project) where a circle would be. A project's next action
+   opens with its project (see PickEditor). bar: see useOpened. */
+function TaskEditor({ old, initial, bar }) {
+  const it = old || initial, kind = kindOf(it);
+  const [f, setF] = useState(() => taskFields(it));
+  const set = k => v => setF(f => ({ ...f, [k]: v }));
+  const { box, error, save, drop } = useOpened({ old, bar, draft: JSON.stringify(f), save: fail => {
+    const r = taskOf(f, it);
+    if (typeof r === 'string') return fail(r);
+    if (!old) it.file ? it.file(r) : addThing('task', r);
+    else {
+      patchItem(old.id, r);
+      if (setFor(r) !== setFor(old)) toast(setFor(r));
+    }
+    return true;
+  } });
+  /* Saved first, it opens in its row as a new project would (see Picks): its name, its next action to write; saving
+     files it there (fileItem, Undo), Esc leaves it as it was. */
+  const toProject = () => {
+    if (!save()) return;
+    const t = store.items[old.id];
+    openThing({ id: t.id, kind: 'project', title: t.title, file: o => fileItem(t, 'project', o) });
+  };
+  return html`<li class="editing" ref=${box} tabindex="-1"><div class="li task-row">
+    <div class="name-line"><div class="li-body"><${Name} label="Task" value=${f.title} onInput=${set('title')} /></div>
+      ${old && html`<${DeleteButton} old=${old} drop=${drop} />${kind === 'someday'
+        ? html`<button class="ring-btn" aria-label="Make it a project" data-tip="Make it a project" onClick=${toProject}><${Icon} name="project" size=${16} /></button>`
+        : html`<${DoneButton} label=${'Done: ' + old.title} due=${dueOf(old)} onClick=${() => { if (save()) completeTask(store.items[old.id]); }} />`}`}</div>
+    <div class="edit-b">
+      <${Status} error=${error} />
+      ${kind !== 'someday' && html`<div class="when"><${When} f=${f} set=${set} it=${it} /></div>`}
+    </div>
+  </div></li>`;
+}
+
+/* Where a task saved went, when it's made or changes day or page: a next action to its context on Next, what repeats
+   to Ticklers, what has no day to Someday, the rest to the Calendar (or Next, today). */
+const setFor = r => r.date ? `${isRepeating(r) ? 'Tickler' : 'Task'} set for ${fmtDay(r.date)}` : r.context ? `Added to ${store.items[r.context].title}` : 'Added to Someday';
+const editorOf = kind => kind === 'task' ? TaskEditor : PickEditor;
+/* Whether a new thing of the kind is open (ui.open, as it starts; not one in the place of one there is: see Picks). */
+const newOpen = kind => ui.open?.kind === kind && !ui.open.id;
+/* A new thing open in place in a pane of its own: above its list, or in the place of the Sweep's item (bar: see
+   useOpened). */
+const NewThing = ({ bar }) => { const o = ui.open, Editor = editorOf(o.kind); return html`<${Block}><ul class="list"><${Editor} key=${o.key} initial=${o} bar=${bar} /></ul><//>`; };
+
+/* A list of tasks. Under each name, what its page doesn't say (the user's asks): its project; on Next a dated one's
+   page (Ticklers or the Calendar); elsewhere its context, in words alone. day(r): the words for its day, nothing
+   where its pane names it (the Calendar's days). A click anywhere on a row opens it in its place, a project's next
+   action as its project (one editor for the two: the user's ask), the app's own as the Sweep (OWN). Deleting is the
+   open row's, so a slip on a row can't delete. A data task drags (dropTask) among those it's ordered with (laneOf;
+   data-set: its day, else its context's) in the page's zone. */
+const taskRows = (day, next) => list => html`<ul class="list">${list.map(r => {
+  if (ui.open?.id === r.id) return html`<${TaskEditor} key=${r.id} old=${r} />`;
+  if (r.project && ui.open?.id === r.project) return html`<${PickEditor} key=${r.project} old=${store.items[r.project]} next=${ui.open.next} />`;
+  const own = OWN[r.id], go = own ? sweep : () => openThing({ id: r.project || r.id }), p = store.items[r.project], due = dueOf(r);
+  const c = store.items[r.context], [icon, from] = (p ? ['project', p.title + (p.due ? ` · ${dueOn(p.due)}` : '')] : next ? !own && r.date && (isRepeating(r) ? ['repeat', 'Ticklers'] : ['forecast', 'Calendar']) : c && [null, c.title]) || [];
+  const drag = { ...draggable(r.id, (...aim) => dropTask(r.id, ...aim)), 'data-lane': next ? r.context : r.date, 'data-set': dayOf(r) };
+  return html`<li key=${r.id}><div class="li task-row tappable" onClick=${opens(go)} ...${!own && drag}>
+    <button class="li-title" onClick=${go}>${r.title}</button>
+    <div class="task-side">
+      ${isRepeating(r) && html`<span class="task-rule"><${Icon} name="repeat" size=${12} />${isLast(r) ? html`<b class="last">Last one</b>` : repeatShort(r.repeat)}</span>`}<br />
+      <span class=${cx('task-when', due)}>${day(r)}</span>
+    </div>
+    <span class="task-from">${icon && html`<${Icon} name=${icon} size=${12} />`}${from}</span>
+    <${DoneButton} label=${'Done: ' + r.title} due=${due} onClick=${() => completeTask(r)} />
+  </div></li>`;
+})}</ul>`;
+
+/* ==== Navigation ==== */
+/* The rail, in order; the number keys follow it: what's next, what comes in, then where the Sweep files it. Seven at
+   most: more crowd a phone's bar. The Sweep isn't on it: the Inbox's broom (Shift + S) enters it. */
+const NAV = [
+  { id: 'next', label: 'Next' },
+  { id: 'inbox', label: 'Inbox' },
+  { id: 'calendar', label: 'Calendar' },
+  { id: 'ticklers', label: 'Ticklers' },
+  { id: 'projects', label: 'Projects' },
+  { id: 'someday', label: 'Someday' },
+  { id: 'research', label: 'Research' },
+];
+/* SIByL opens on Next, or where the Sweep had got to if it was left mid-Sweep (a tab closed by a slip; saved on
+   visibilitychange in browser storage, sybil.sweep). kept: how the page is showing (see useKept). */
+let route = { view: 'next', kept: {} };
+const kept = JSON.parse(localStorage.getItem('sybil.sweep'));
+if (kept) route = { view: 'sweep', kept };
+/* Where you've been, restoring scroll and kept as a browser does, never into the Sweep. Going to another page drops
+   what's open in place (a click on the rail saved it first). */
+const trail = [];
+let scrollTo = 0;
+function navigate(view, back) {
+  if (!back && view !== route.view && route.view !== 'sweep') {
+    trail.push({ ...route, scroll: main().scrollTop });
+  }
+  scrollTo = back ? back.scroll : 0;
+  route = { view, kept: back ? back.kept : view === route.view ? route.kept : {} };
+  ui.open = null;
+  refresh();
+}
+/* Back (Backspace, a browser's or phone's Back): the Back on screen (the Sweep's), else the page you came from. */
+function goBack() {
+  const b = document.querySelector('[data-kbd=back]');
+  if (b) return b.click();
+  const r = trail.pop();
+  if (r) navigate(r.view, r);
+}
+/* A browser's or phone's Back goes back in SIByL, after closing what's open on top (a thing open in place keeps its
+   changes: see useLayer), and leaves it only from where there's nothing to go back to, as from any page. SIByL holds
+   one entry of the browser's history for it, from the first press (a browser skips one added before). */
+let held = false;
+const hold = () => { if (!held) { held = true; history.pushState(null, ''); } };
+addEventListener('click', hold, true);
+addEventListener('keydown', hold, true);
+addEventListener('popstate', () => {
+  held = false;
+  if (layers.length) { const top = layers.at(-1).current; (top.back || top.close)(); }
+  else if (document.querySelector('[data-kbd=back]') || trail.length) goBack();
+  else return history.back();
+  hold();
+});
+/* window: Capture, the one window, is over the page. open: what's open in place, its row turned
+   into its editor: { id } of a thing there is (next: a project whose next action was ticked), or a new one as it
+   starts ({ kind, ... }: at the top of its list, or in the place of the Sweep's item; with an id, in that thing's
+   place: a Someday task made a project). splash: a word a moment over the page (see Splash). */
+const ui = { window: false, open: null, splash: null };
+function setUI(patch) { Object.assign(ui, patch); refresh(); }
+/* The thing open in place, if any (see useOpened): its save and drop. */
+let opened = null;
+/* One at a time: the one open is saved first, and stays open if it can't be. key: each new one is drawn afresh, even
+   where the one just saved stood. */
+function openThing(o) { if (!opened || opened.save()) setUI({ open: { ...o, key: uid() } }); }
+
+/* The Sweep (Shift + S, the Inbox's Sweep, the Sweep's own task), its broom a moment over it as it begins; with
+   nothing in the Inbox, nothing to sweep: a moment's word that it's empty, over the page you're on. */
+function sweep() {
+  const some = all('inbox').length > 0;
+  if (some) navigate('sweep');
+  setUI({ splash: some ? { art: 'sweep', words: 'Sweep' } : { art: 'inbox', words: 'Inbox is empty' } });
+}
+/* A section's icon and a word in its colour, over the page a moment, then gone (a click sends it at once). */
+function Splash({ art, words }) {
+  useEffect(() => { const t = setTimeout(() => setUI({ splash: null }), 800); return () => clearTimeout(t); }, []);
+  return html`<div class="splash" style=${tint(art)} onClick=${() => setUI({ splash: null })}><div><${Art} id=${art} size=${84} /><b>${words}</b></div></div>`;
+}
+
+/* How this device's copy stands with Dropbox, in words only (the user's asks: a dot on the gear was ambiguous; a
+   cloud and a hover light looked pressable): All synced, or Syncing… while Dropbox hasn't had a change; in red, what
+   keeps it from Dropbox: No network, Not synced (see failed), Signed out (by Dropbox: see signOut). Nothing while
+   not connected. Each is at least as wide as the History and Settings marks under it on the rail (47.6px of ink,
+   measured), so they don't stick out past its ends (the user disliked that, and letters spread to fit). */
+function SyncState() {
+  if (auth === null) return null;
+  const [word, bad] = auth === false ? ['Signed out', 1] : !navigator.onLine ? ['No network', 1] : stuck ? ['Not synced', 1] : [store.unpushed ? 'Syncing…' : 'All synced'];
+  return html`<span class=${cx('sync', bad && 'bad')}>${word}</span>`;
+}
+/* How it syncs, then History and Settings, pages off the rail (no number key): at the rail's foot or in a phone's top
+   bar. */
+const Tools = () => html`<${SyncState} /><button class="icon-btn" aria-label="History" onClick=${() => navigate('history')}><${Icon} name="history" /></button>
+  <button class="icon-btn" aria-label="Settings" onClick=${() => navigate('settings')}><${Icon} name="gear" /></button>`;
+function Sidebar() {
+  const inboxN = all('inbox').length;
+  const waits = { inbox: inboxN > 0 && `Inbox, ${inboxN} waiting`, research: all('question').some(s => s.answered && !s.read) && 'Research, a new answer' };
+  return html`<aside class="sidebar" aria-label="Sections">
+    <nav class="nav">
+      ${NAV.map(n => { const on = route.view === n.id, flag = waits[n.id]; return html`
+        <button key=${n.id} class=${cx('nav-item', on && 'on')} style=${tint(n.id)} aria-label=${flag || n.label}
+          aria-current=${on ? 'page' : null} onClick=${() => navigate(n.id)}>
+          <span class="nav-ico"><${Art} id=${n.id} size=${30} />${flag && html`<span class="nav-flag" aria-hidden="true"></span>`}</span>
+          <span class="nav-label">${n.label}</span>
+        </button>`; })}
+    </nav>
+    <div class="side-foot"><${Tools} /></div>
+  </aside>`;
+}
+
+/* ==== Next ==== */
+/* A pane per context, in Settings' order, and first, untitled, what has none: the app's own tasks (OWN) and any task
+   not given one yet. In each, the tasks with a day by that day (dayOf: a Calendar task or Tickler from when it
+   shows, a next action by its deadline), then those with none in the order dragged (the user's ask). A next action
+   shows from the moment it's made, unless its project is on hold. Things leave only by being done: one missed waits
+   here, its day red, until ticked. A task dragged into another pane takes its context. */
+function NextView() {
+  const t = todayISO();
+  /* The app's own tasks, sorted as tasks due on their day (first of that day's), until ticked. */
+  const own = Object.entries(OWN).map(([id, o]) => ({ id, title: o.title, date: ownDay(id, t), repeat: o.repeat(), order: -1 })).filter(r => r.date);
+  const shown = [...own, ...all('task').filter(r => !onHold(r) && kindOf(r) !== 'someday' && (!r.date || dayDiff(t, r.date) <= r.ahead))];
+  const contexts = inOrder('context'), ids = new Set(contexts.map(c => c.id));
+  const panes = [{ id: '', list: shown.filter(r => !ids.has(r.context)) }, ...contexts.map(c => ({ id: c.id, title: c.title, list: shown.filter(r => r.context === c.id) }))];
+  /* Every row's day, Today too, whatever it came from (the user's ask: a pane mixes them, so none says when). */
+  const tasks = taskRows(r => dayOf(r) && fmtDay(dayOf(r)), true);
+  const adding = newOpen('task');
+  return html`<div class="page next" data-zone>
+    <${PageHeader} nav="next"><${AddButton} label="New next action" onClick=${() => openThing({ kind: 'task', date: '', next: true })} /><//>
+    ${adding && html`<${NewThing} />`}
+    ${panes.map(({ id, title, list }) => list.length > 0 && html`<${Block} key=${id} title=${title} data-lane=${id || undefined}>
+      ${tasks([...list.filter(dayOf).sort(byDay), ...list.filter(r => !dayOf(r)).sort(byOrder)])}
+    <//>`)}
+    ${!shown.length && !adding && html`<p class="empty">Nothing next.</p>`}
+  </div>`;
+}
+
+/* ==== Plain lists ==== */
+/* A plain list's line (the Inbox's, a project's info, a context): its words renamed in place; its tools brought out
+   over it by a mouse, or by a finger tapping it open (see useTapped): its trash, unless it can't go (a context holding
+   tasks); onUp's ↑ first (an info made the next action: see PickEditor); with onMove, dragged to another place in its
+   list ([data-zone]) as a project is, at its place there (at). */
+const ListLine = ({ open, onClick, text, onSave, verb = 'Delete', onDelete, onUp, at, onMove }) => html`<li class=${cx('line-row hov', open && 'open')} onClick=${onClick} ...${onMove && draggable(at, onMove)}>
+  <div class="li-body"><${EditableText} cls="line-title" value=${text} onSave=${onSave} /></div>
+  ${onUp && html`<button class="icon-btn reveal" aria-label=${'Make it next: ' + text} data-tip="Make it next" onClick=${onUp}><${Icon} name="up" size=${15} /></button>`}
+  ${onDelete && html`<${Trash} cls="reveal" label=${verb + ' ' + text} tip=${verb} onClick=${onDelete} />`}
+</li>`;
+/* tap(key) gives a row its open and onClick. A press on another row is left to its tap; one on a button (its own
+   trash or circle too) or elsewhere on the page (not on what floats over it: OVER), Esc or a drag closes it, as the
+   press lands or, for a scroll, as it ends: a row gone while open left Back a layer with nothing to close. */
+function useTapped() {
+  const [tapped, setTapped] = useState(null);
+  useLayer(tapped, () => setTapped(null));
+  useEffect(() => {
+    if (!tapped) return;
+    let live = true;
+    const close = () => { if (live) setTapped(null); };
+    const away = e => { const t = e.target; if ((!t.closest('.hov') || t.closest('button')) && !t.closest(OVER)) onPressEnd(close); };
+    document.addEventListener('pointerdown', away);
+    addEventListener('lift', close);
+    return () => { live = false; document.removeEventListener('pointerdown', away); removeEventListener('lift', close); };
+  }, [tapped]);
+  return k => ({ open: tapped === k, onClick: opens(() => { if (touching()) setTapped(t => t === k ? null : k); }) });
+}
+/* A list's line that adds to it (an open project's infos, Settings' contexts): Enter or a press elsewhere adds what's
+   typed, a line each (onAdd gets them), and stays (Enter with nothing typed is what's open's Done); Esc drops it
+   (notSaved). icon: its mark, as every field of an open thing has one. */
+function AddLine({ hint, icon, onAdd }) {
+  const [draft, setDraft] = useState('');
+  const box = useRef(null), dropped = useRef(false);
+  const add = text => { onAdd(splitLines(text)); setDraft(''); };
+  return html`<li><div class="add-row" onClick=${() => box.current.focus()}>
+    ${icon && mark('add-' + icon, icon)}<${AutoTextarea} id=${icon && 'add-' + icon} inputRef=${box} value=${draft} placeholder=${hint} aria-label=${hint} onInput=${e => setDraft(e.target.value)}
+      onKeyDown=${typing({ done: draft.trim() && (() => add(draft)), esc: e => { dropped.current = true; setDraft(''); e.target.blur(); if (draft.trim()) notSaved(() => add(draft)); } })}
+      onBlur=${() => { const text = draft; if (dropped.current) dropped.current = false; else if (text.trim()) onPressEnd(() => add(text)); }} />
+    <span class="add-ico"><${Icon} name="plus" size=${16} /></span>
+  </div></li>`;
+}
+/* An open project's infos: Add info first, always in one place (at the foot it moved with their number: the user's
+   ask), adding a line each at the end; then a line counting them that folds them (unfolded at first); each renamed,
+   removed or dragged in place, its ↑ (onUp) swapping it with the next action's words. onChange takes a function of
+   the list, so pasted lines all count. */
+function InfoList({ list, onChange, onUp }) {
+  const tap = useTapped();
+  const [open, setOpen] = useState(true);
+  return html`<ul class="lines" data-zone>
+    <${AddLine} key="add" hint="Add info…" icon="info" onAdd=${lines => onChange(l => [...l, ...lines])} />
+    ${list.length > 0 && html`<li key="fold" class="fold"><button class="line-btn" aria-expanded=${open} onClick=${() => setOpen(!open)}>${`${list.length} ${plural(list.length, 'info')}`}<span class="chev"><${Icon} name="right" size=${14} /></span></button></li>`}
+    ${open && list.map((t, n) => html`<${ListLine} key=${n} ...${tap('info' + n)} text=${t} onSave=${v => onChange(l => l.map((x, i) => i === n ? v : x))}
+      verb="Remove" onDelete=${() => onChange(l => l.filter((_, i) => i !== n))} onUp=${() => onUp(n)} at=${n} onMove=${before => onChange(l => moveBefore(l, n, before == null ? null : +before))} />`)}
+  </ul>`;
+}
+
+/* ==== Inbox ==== */
+/* What's captured, a line an item; from elsewhere (see gather), at the capture's time, so captures keep their order,
+   and with its name (stem) for its lines' ids, <stem>-<line>, so one that comes twice is made once. */
+function addToInbox(text, at = Date.now(), stem) {
+  const lines = splitLines(text);
+  lines.forEach((text, i) => { const id = stem && `${stem}-${i}`; if (!stem || !(id in store.items || id in store.gone)) newItem('inbox', { text, created: at + i }, id); });
+  return lines.length;
+}
+/* The Inbox only collects; going through it is the Sweep's. Here a thing can only be renamed or deleted. */
+function InboxView() {
+  const [draft, setDraft] = useState('');
+  const tickler = setting('tickler').trim();
+  const items = all('inbox').sort(byCreated);
+  const tap = useTapped();
+  const add = () => { if (addToInbox(draft)) setDraft(''); };
+  return html`<div class="page">
+    <${PageHeader} nav="inbox"><button class="btn" onClick=${sweep}><${Art} id="sweep" size=${18} />Sweep</button><//>
+    ${tickler && html`<p class="note tickler">${linked(tickler)}</p>`}
+    <div class="capture-box">
+      <${AutoTextarea} value=${draft} rows="2" placeholder="Type or paste. Each line becomes its own item." aria-label="New inbox items"
+        onInput=${e => setDraft(e.target.value)} onKeyDown=${typing({ done: add })} />
+      <button class=${cx('send-btn', draft.trim() && 'ready')} aria-label="Add to Inbox" onMouseDown=${holdFocus} onClick=${add}><${Icon} name="up" size=${16} /></button>
+    </div>
+    ${items.length ? html`<div class="panel"><ul class="list">${items.map(it => html`<${ListLine} key=${it.id} ...${tap(it.id)}
+      text=${it.text} onSave=${text => patchItem(it.id, { text })} onDelete=${() => deleteThing(it)} />`)}
+    </ul></div>` : html`<div class="inbox-zero" role="img" aria-label="Inbox zero"><svg viewBox="2 3 24 21.86" aria-hidden="true"><path fill-rule="evenodd" d=${TRAY_THIN} /></svg></div>`}
+  </div>`;
+}
+
+/* ==== Projects and questions ==== */
+/* What's wrong with an open thing, under its name. */
+const Status = ({ error }) => error && html`<p class="err" role="alert">${error}</p>`;
+/* A thing open in place's Delete (a task's, a project's, a question's): a can on its name's line, left of its circle
+   or ring (a question's at its row's end, where a circle would be), as big as the circle (the user's design). */
+const DeleteButton = ({ old, drop }) => html`<button class="del-btn" aria-label=${'Delete ' + old.title} data-tip="Delete" onClick=${() => { drop(); deleteThing(old); }}><${Icon} name="can" size=${32} /></button>`;
+/* A project or question open in place: one there is (old), or a new one (initial; its file says how it's made, else
+   addThing). A project opens in parts (the user's ask: what's what at a glance): its name, with its Delete (its next
+   action goes too) and its hold where a task's circle is, then its due day; under a line its next action, written a
+   task's way (taskFields, When, taskOf), then Don't show until (a day it's held until: see isHeld); under a line its
+   infos, one of which ↑ swaps with the next action's words, so only one is ever next and nothing typed is lost.
+   next: its next action was ticked (completeTask), so the next one is written, in the last one's context, or Project
+   done (a done circle in the hold's place: the user's ask) ends it; saved, the old one is ticked, with Undo; Esc, or nothing written, ticks nothing. A question opens as
+   an answered one unfolds: its name, its description, its Delete at its row's end. bar: see useOpened. */
+function PickEditor({ old, initial, next, bar }) {
+  const it = old || initial, { label } = PICKS[it.kind], project = it.kind === 'project', was = old && project && actionOf(old);
+  /* Its next action as it is, or as it starts (a new project's maybe the Sweep's item: see ANSWERS). */
+  const at = (!next && was) || { project: old?.id || 'new', date: '' };
+  const [title, setTitle] = useState(it.title || '');
+  const [note, setNote] = useState(it.note || '');
+  const [infos, setInfos] = useState(it.infos || []);
+  const [act, setAct] = useState(() => taskFields(next ? { context: was.context, date: '' } : was || { date: '', title: it.action }));
+  /* The day it's held until, while it is (one passed, or a hold by hand, isn't a day to show), and the day it's due. */
+  const [until, setUntil] = useState(old && old.hold !== true && isHeld(old) ? old.hold : '');
+  const [due, setDue] = useState(it.due || '');
+  const setA = k => v => setAct(f => ({ ...f, [k]: v }));
+  const up = i => { const words = oneLine(act.title); setInfos(l => words ? l.toSpliced(i, 1, words) : l.toSpliced(i, 1)); setA('title')(infos[i]); };
+  const tick = () => { removeItem(was.id); logDone(was); };
+  /* The last day it can be held until: its next action's and its own due day (none left: no Don't show until). */
+  const t = todayISO(), last = earliest(act.due, due);
+  const { box, error, save, drop } = useOpened({ old, bar, draft: JSON.stringify([title, note, infos, act, until, due]), save: fail => {
+    if (!oneLine(title)) return fail('Give it a name.');
+    const n = project && (oneLine(act.title) ? taskOf(act, at) : 'Give it a next action.');
+    /* Typed past what the pickers allow (see When): what would disagree. */
+    const a = project && n.due, wrong = typeof n === 'string' ? n : tooEarly(until, addDays(t, 1)) || tooEarly(due, t, old?.due)
+      || (a && a < until && 'Its next action would be due before it shows.') || (due && a > due && 'Its next action would be due after the project.')
+      || (due && until > due && 'The project would be due before it shows.');
+    if (wrong) return fail(wrong);
+    /* Held until a day picked, else as it was by hand. */
+    const h = { title: oneLine(title), ...(project ? { infos, due, hold: until || old?.hold === true } : { note: note.trim() }) };
+    const said = until && until !== old?.hold && `On hold until ${fmtDay(until)}`;
+    if (next) doneToast(said || `Done: ${clip(was.title)}`, undoable(() => { tick(); makeThing('task', n); patchItem(old.id, h); }));
+    else if (old) {
+      patchItem(old.id, h);
+      if (was && JSON.stringify(act) !== JSON.stringify(taskFields(was))) patchItem(was.id, n);
+      if (said) toast(said);
+    } else {
+      const made = it.file ? it.file(h) : addThing(it.kind, h);
+      if (project) makeThing('task', { ...n, project: made.id });
+    }
+    return true;
+  } });
+  const hold = () => {
+    if (!save()) return;
+    const p = store.items[old.id];
+    toast(isHeld(p) ? 'Resumed' : 'Put on hold', { undo: undoable(() => patchItem(p.id, { hold: !isHeld(p) })) });
+  };
+  const finish = () => {
+    drop();
+    doneToast(`Done: ${clip(old.title)}`, undoable(() => { tick(); removeItem(old.id); }));
+  };
+  const holds = old && isHeld(old) ? 'Resume' : 'Put on hold';
+  return html`<li class="editing" ref=${box} tabindex="-1"><div class="pick-row">
+    <div class="li-body edit-b">
+      ${project ? html`<div class="name-line"><div class="li-body"><${Name} label=${label} value=${title} onInput=${setTitle} /></div>
+          ${next ? html`<${DoneButton} label="Project done" due=${dueOf(old)} onClick=${finish} />`
+            : old && html`<${DeleteButton} old=${old} drop=${drop} /><button class="ring-btn" aria-pressed=${isHeld(old)} aria-label=${holds} data-tip=${holds} onClick=${hold}><${Icon} name=${isHeld(old) ? 'play' : 'pause'} size=${18} /></button>`}</div>
+        <${Status} error=${error} />
+        <div class="when"><${DayRow} id="project-due" icon="project" label="Project due" value=${due} low=${latest(t, act.due, until)} was=${old?.due} set=${setDue} /></div>
+        <div class="edit-b">
+          <div class="row act">${mark('act-title', 'next')}<${AutoTextarea} line id="act-title" class="words" autofocus=${!!it.title && !oneLine(act.title) && !touching()} aria-label="Next action"
+            placeholder="Next action" value=${act.title} onInput=${e => setA('title')(e.target.value)} /></div>
+          <div class="when"><${When} f=${act} set=${setA} it=${at} after=${until} before=${due} />
+            ${(until || !last || addDays(t, 1) <= last) && html`<${DayRow} id="project-until" icon="pause" label="Don’t show until" value=${until} low=${addDays(t, 1)} high=${last} set=${setUntil} />`}</div>
+        </div>
+        <${InfoList} list=${infos} onChange=${setInfos} onUp=${up} />`
+      : html`<${Name} label=${label} value=${title} onInput=${setTitle} />
+        <${Status} error=${error} />
+        <${Words} class="note" aria-label="Description" placeholder="Add description" value=${note} onInput=${e => setNote(e.target.value)} />`}
+    </div>
+    ${old && !project && html`<${DeleteButton} old=${old} drop=${drop} />`}
+  </div></li>`;
+}
+
+/* Things in a pane (title: its heading): projects, questions waiting, Someday's tasks. A click opens one in place
+   (with o.kind, a thing being made of it: a Someday task made a project), a drag moves it in its list; under each
+   name its sub (PICKS), else its description. trash: a trash at the row's end, as an Inbox item's (Someday is an
+   Inbox of what might be done one day). A new one opens over the list (NewThing). empty: what to say when there are
+   none and none is being made (true: "No projects yet."). */
+function Picks({ kind, list, title, trash, empty }) {
+  const sub = PICKS[kind]?.sub || (h => h.note), o = ui.open;
+  if (!list.length) return !newOpen(kind) && empty && html`<p class="empty">${empty === true ? `No ${MANY[kind]} yet.` : empty}</p>`;
+  return html`<${Block} title=${title}>
+    <ul class="list" data-zone>${list.map(h => {
+      if (o?.id === h.id) return o.kind ? html`<${editorOf(o.kind)} key=${o.key} initial=${o} />` : html`<${editorOf(kind)} key=${h.id} old=${h} />`;
+      const go = () => openThing({ id: h.id }), line = sub(h);
+      return html`<li key=${h.id}>
+      <div class=${cx('pick-row tappable', trash && 'hov')} onClick=${opens(go)} ...${draggable(h.id, before => placeInList(list, store.items[h.id], before))}>
+        <div class="li-body"><button class="li-title" onClick=${go}>${h.title}</button>${line && html`<div class="note">${linked(line)}</div>`}</div>
+        ${trash && html`<${Trash} cls="pick-del reveal" label=${'Delete ' + h.title} onClick=${() => deleteThing(h)} />`}
+      </div>
+    </li>`; })}</ul>
+  <//>`;
+}
+
+/* ==== Research ==== */
+/* Answered (every question answered, newest first) or Waiting (the questions to research, in their order), one at a
+   time once there are both: a segmented control picks (part: the one showing, null while there's only one), Answered
+   unless Waiting was picked while on the page, as a new question does. Answers stay until deleted: the page is a
+   manual. */
+function ResearchView() {
+  const questions = inOrder('question'), waiting = questions.filter(s => !s.answered);
+  const answered = questions.filter(s => s.answered).sort((a, b) => b.answered.localeCompare(a.answered));
+  const [pick, show] = useKept('scope', 'answered');
+  const part = answered.length > 0 && (waiting.length > 0 || newOpen('question')) ? pick : null;
+  const tab = (id, label) => html`<button role="radio" aria-checked=${part === id} class=${cx(part === id && 'on')} onClick=${() => show(id)}>${label}</button>`;
+  return html`<div class="page">
+    <${PageHeader} nav="research"><${AddButton} label="New question" onClick=${() => { show('waiting'); openThing({ kind: 'question' }); }} /><//>
+    ${part && html`<div class="seg scope" role="radiogroup" aria-label="Show">${tab('answered', 'Answered')}${tab('waiting', 'Waiting')}</div>`}
+    ${part !== 'waiting' && answered.length > 0 && html`<${Answered} list=${answered} />`}
+    ${part !== 'answered' && html`${newOpen('question') && html`<${NewThing} />`}<${Picks} kind="question" list=${waiting} title=${!part && 'Waiting'} empty=${!answered.length} />`}
+  </div>`;
+}
+/* The questions answered, folded so the one wanted is easy to find, the search box narrowing them by their words; a
+   click unfolds one, marking it read (it was bold, and the rail had its dot), and folds the one open before, as opening
+   a task does (kept while you're on the page, open while it's there: deleted, it left Back a layer with nothing to
+   close). Esc, a phone's Back or a click elsewhere folds it, as anything open in place; not the Capture button (see
+   OVER), so what's read can be captured and read on. */
+function Answered({ list }) {
+  const [find, setFind] = useKept('find', '');
+  const words = find.trim().toLowerCase();
+  const shown = list.filter(s => [s.title, s.note, s.answer].some(t => t.toLowerCase().includes(words)));
+  const [unfolded, setUnfolded] = useKept('unfolded', null);
+  const open = shown.some(s => s.id === unfolded) ? unfolded : null;
+  /* The question pressed stays where it was on the screen as the one open before folds up (top: where); one folded
+     otherwise, its answer read far down, comes back into sight. */
+  const held = useRef(null), openLi = useRef(null);
+  useLayoutEffect(() => {
+    const h = held.current;
+    if (h?.top != null) main().scrollTop += h.row.getBoundingClientRect().top - h.top;
+    else h?.row.scrollIntoView({ block: 'nearest' });
+    held.current = null;
+  }, [unfolded]);
+  const fold = s => e => {
+    const row = e.currentTarget.closest('.chapter-h');
+    held.current = { row, top: row.getBoundingClientRect().top };
+    setUnfolded(unfolded === s.id ? null : s.id);
+    patchItem(s.id, { read: true });
+  };
+  const shut = () => { const row = openLi.current?.querySelector('.chapter-h'); held.current = row && { row }; setUnfolded(null); };
+  useLayer(open, shut);
+  /* A press on another question is its fold's, which holds it in place: folded here first, the page jumped. */
+  useClickAway(openLi, open, e => { if (!e.target.closest('.chapter-h')) shut(); });
+  return html`<${Search} value=${find} set=${setFind} />
+    <${Block}><ul class="list">${shown.map(s => html`<${Chapter} key=${s.id} s=${s} li=${open === s.id ? openLi : null} onFold=${fold(s)} onDelete=${() => deleteThing(s)} />`)}</ul><//>`;
+}
+/* A question answered: its row (a click folds or unfolds it; unfolded, its trash on its line), then what I
+   asked, Claude's answer and where it comes from (only web links: the answer comes from outside SIByL). li: the open
+   one's ref (see Answered). */
+function Chapter({ s, li, onFold, onDelete }) {
+  const links = s.sources.filter(x => /^https?:\/\//.test(x.url)), open = !!li;
+  return html`<li ref=${li}>
+    <div class="pick-row chapter-h" onClick=${opens(onFold)}>
+      <div class="li-body"><button class=${cx('li-title', !s.read && 'unread')} aria-expanded=${open} onClick=${onFold}>${s.title}</button></div>
+      ${open && html`<${Trash} cls="pick-del" label=${'Delete ' + s.title} onClick=${onDelete} />`}
+      <span class="chev"><${Icon} name="right" size=${14} /></span>
+    </div>
+    ${open && html`<div class="chapter">${s.note && html`<div class="note">${linked(s.note)}</div>`}<${Prose} text=${s.answer} />
+      ${links.length > 0 && html`<div class="sources">${links.map(x => html`<a href=${x.url} target="_blank" rel="noopener noreferrer"><${Icon} name="link" size=${13} />${x.title}</a>`)}</div>`}</div>`}
+  </li>`;
+}
+/* Claude's answer, written in Markdown's plain parts: headings, paragraphs, - and 1. lists, **bold**, *italic*; a
+   [link](…) keeps only its words (the sources hold the links). Drawn as text, so nothing in it becomes markup. */
+const inline = t => t.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').split(/(\*\*[^*]+\*\*|\*[^*\s][^*]*\*)/)
+  .map((p, i) => i % 2 ? (p.startsWith('**') ? html`<b>${p.slice(2, -2)}</b>` : html`<i>${p.slice(1, -1)}</i>`) : p);
+function Prose({ text }) {
+  const blocks = [];
+  let gap = true;
+  for (const line of text.split('\n')) {
+    const t = line.trim(), last = blocks.at(-1), head = t.match(/^#+\s+(.*)/), item = t.match(/^(?:[-*•]|(\d+)[.)])\s+(.*)/);
+    if (!t) { gap = true; continue; }
+    if (head) blocks.push({ tag: 'h3', text: head[1] });
+    else if (item) { const tag = item[1] ? 'ol' : 'ul'; if (last?.tag === tag) last.items.push(item[2]); else blocks.push({ tag, start: item[1], items: [item[2]] }); }
+    else if (last?.tag === 'p' && !gap) last.text += ' ' + t;
+    else blocks.push({ tag: 'p', text: t });
+    gap = false;
+  }
+  return html`<div class="prose">${blocks.map(b => b.items
+    ? html`<${b.tag} start=${b.start}>${b.items.map(x => html`<li>${inline(x)}</li>`)}<//>`
+    : html`<${b.tag}>${inline(b.text)}<//>`)}</div>`;
+}
+
+/* ==== Calendar ==== */
+/* What's done once, from tomorrow on (today is Next's; what repeats is Ticklers'). Its days as OmniFocus's Forecast
+   has them: Tomorrow, five days more, then Future, each with its count (seven tiles: with eight, "Tomorrow" didn't
+   fit on a phone); a tap shows that day alone, an empty one can't be picked. A pane a day, titled by its date
+   ("Tomorrow — Fri 6 Nov"), so its rows don't repeat it; Future's rows name theirs. A task dragged into another
+   day's pane, or onto a day's tile, moves to that day (startDrag). */
+function CalendarView() {
+  const [pick, setPick] = useKept('day', null);
+  const t = todayISO(), next = [1, 2, 3, 4, 5, 6].map(n => addDays(t, n));
+  const list = all('task').filter(r => r.date > t && !isRepeating(r) && !onHold(r)).sort(byDay);
+  const days = [
+    ...next.map((d, i) => ({ id: d, label: i ? `${WD[parseDay(d).getDay()]} ${parseDay(d).getDate()}` : 'Tomorrow', title: paneDay(d), list: list.filter(r => r.date === d) })),
+    { id: '', label: 'Future', title: 'Future', list: list.filter(r => r.date > next.at(-1)) },
+  ];
+  const day = days.find(d => d.id === pick && d.list.length);
+  const tasks = taskRows(r => r.date > next.at(-1) && fmtWeekday(r.date));
+  const adding = newOpen('task');
+  return html`<div class="page" data-zone>
+    <${PageHeader} nav="calendar"><${AddButton} label="New task" onClick=${() => openThing({ kind: 'task' })} /><//>
+    ${list.length ? html`<div class="dates" role="group" aria-label="Days">${days.map(d => html`<button key=${d.id} class=${cx(day === d && 'on')} data-into=${d.id || undefined}
+      aria-pressed=${day === d} disabled=${!d.list.length} onClick=${() => setPick(day === d ? null : d.id)}>${d.label}<b>${d.list.length}</b></button>`)}</div>` : !adding && html`<p class="empty">Nothing ahead.</p>`}
+    ${adding && html`<${NewThing} />`}
+    ${(day ? [day] : days.filter(d => d.list.length)).map(d => html`<${Block} key=${d.id} title=${d.title} data-lane=${d.id}>${tasks(d.list)}<//>`)}
+  </div>`;
+}
+
+/* ==== The Sweep ==== */
+/* What an Inbox item can become when it can't be done now: what each makes (kind) opens in the item's place, as a
+   page's + opens one, and the Sweep's Save files it. start(words): what the new one starts with (the Calendar's and
+   a Tickler's from tomorrow on, later: what's for today is a next action); a new project's, its next action (the
+   item is mostly that, the project's name still to write). Project asks Which one? first: a new one (fresh) or one
+   there is (into), the item then the last of its infos. */
+const ANSWERS = [
+  { id: 'next', label: 'Next', icon: 'clockDisc', color: 'var(--c-next)', kind: 'task', start: t => ({ title: t, date: '', next: true }) },
+  { id: 'calendar', label: 'Calendar', icon: 'forecast', color: 'var(--c-calendar)', kind: 'task', start: t => ({ title: t, later: true }) },
+  { id: 'tickler', label: 'Tickler', icon: 'repeat', color: 'var(--c-ticklers)', kind: 'task', start: t => ({ title: t, ...TICKLER, later: true }) },
+  { id: 'project', label: 'Project', icon: 'project', color: 'var(--c-projects)', kind: 'project', start: t => ({ action: t }), into: () => inOrder('project'), fresh: 'New project…' },
+  { id: 'someday', label: 'Someday', icon: 'someday', color: 'var(--c-someday)', kind: 'task', start: t => ({ title: t, date: '' }) },
+  { id: 'delegate', label: 'Delegate', icon: 'stack', color: 'var(--c-research)', kind: 'question', start: t => ({ title: t }) },
+];
+
+/* OK, or Decide what it becomes. Its step (now; file: the choices; which: Which one?) is kept (useKept), so SIByL
+   reopened mid-Sweep comes back to it. Space is OK (done, or not worth doing: either way it goes, so no trash),
+   still there once Decided; Esc is Decide, Backspace the Back (data-kbd), a step at a time. Each step's bar is its
+   own, so a pressed button doesn't become the next step's (Decide into Back, still lit). Which one? and what the
+   item is filed as come in the choices' place under the choice picked (.chosen); what it's filed as alone, as it
+   starts from the item's words (bar: Back drops it, Save files it). Filed, Undo brings it back to the choices. */
+function SweepItem({ it, left }) {
+  const [step, setStep] = useKept(it.id + ':step', 'now');
+  /* The choice picked last: Which one? asks for it, and back at the choices the › is on it again. */
+  const [chose, setChose] = useKept(it.id + ':chose', null);
+  const done = () => removeWithUndo(it, `Done: ${clip(it.text)}`, DONE_MANY, 'inbox-done');
+  const file = a => o => fileItem(it, a.kind, o);
+  const make = a => openThing({ kind: a.kind, ...a.start(it.text), answer: a, file: file(a) });
+  const pick = a => { setChose(a.id); if (a.into) setStep('which'); else make(a); };
+  const now = step === 'now', which = step === 'which' && ANSWERS.find(a => a.id === chose), o = !now && ui.open;
+  useLayer(which, () => setStep('file'));
+  const at = o ? 'edit' : step;
+  const back = (kbd, onClick) => html`<button class="btn ghost" data-kbd=${kbd} onClick=${onClick}><${Icon} name="left" size=${16} />Back</button>`;
+  const ok = html`<button class="btn primary" data-kbd="space" onClick=${done}><${Icon} name="check" size=${16} />OK</button>`;
+  const bar = now
+    ? html`<span class="spacer"></span><button class="btn" data-kbd="esc" onClick=${() => setStep('file')}>Decide</button>${ok}`
+    : o ? html`${back(null, () => opened.drop())}<span class="spacer"></span><button class="btn primary" onClick=${() => opened.save()}>Save</button>`
+    : html`${back('back', () => setStep(which ? 'file' : 'now'))}<span class="spacer"></span>${ok}`;
+  return html`<div class="sweep-body">
+      ${o ? html`<div class="sweep-step" key=${at}>
+          <div class="eyebrow chosen">${face(o.answer)}</div>
+          <${NewThing} bar />
+        </div>` : html`
+        <div class="eyebrow">Inbox · ${left === 1 ? 'the last one' : left + ' left'}</div>
+        <h2 class="sweep-title"><${EditableText} value=${it.text} onSave=${text => patchItem(it.id, { text })} /></h2>
+        ${which ? html`<div class="sweep-step" key=${at}>
+            <div class="eyebrow chosen">${face(which)}</div>
+            <${PickList} search options=${[{ id: NEW, label: which.fresh }, ...which.into().map(x => ({ id: x.id, label: x.title }))]}
+              onPick=${x => x.id === NEW ? make(which) : file(which)({ id: x.id })} />
+          </div>`
+        : !now && html`<div class="sweep-step" key=${at}><${PickList} options=${ANSWERS} start=${chose} onPick=${pick} /></div>`}`}
+    </div>
+    <div class="bar" key=${at}>${bar}</div>`;
+}
+
+/* The Inbox one thing at a time, oldest first (begun by sweep, on an Inbox with something in it). Once the last one is
+   gone through it's over: back on Next, the toast of what became of it (its Undo) left showing. Left by Stop (Shift +
+   S), Back or the rail too; a closed tab reopens in it (useKept). */
+function SweepView() {
+  const items = all('inbox').sort(byCreated);
+  const leave = () => navigate('next');
+  useLayoutEffect(() => { if (!items.length) leave(); }, [items.length]);
+  return html`<div class="page">
+    <button class="icon-btn sweep-stop" aria-label="Stop" data-kbd="stop" onClick=${leave}><${Icon} name="stop" size=${16} /></button>
+    ${items.length > 0 && html`<${SweepItem} key=${items[0].id} it=${items[0]} left=${items.length} />`}
+  </div>`;
+}
+
+/* ==== Capture, the one window ==== */
+/* Capture (C, a phone's round button): what's typed goes to the Inbox, a line an item. A window over the page
+   (ui.window), a tool rather than a page: × in its header, its buttons in its foot. It takes the keyboard (its box, a
+   phone's keyboard rising too: typing is the point there) and hands it back to its opener as it closes; Esc, a phone's
+   Back or a press on the dim page around it closes it, Enter adds (see the keys). Closed with words in it, they're
+   notSaved. */
+const capture = () => setUI({ window: true });
+function Capture() {
+  const [v, setV] = useState('');
+  const box = useRef(null), body = useRef(null);
+  const add = () => {
+    const n = addToInbox(v);
+    if (!n) return;
+    setUI({ window: false });
+    toast(n === 1 ? 'Added to Inbox' : `${n} items added to Inbox`);
+  };
+  const close = () => { setUI({ window: false }); if (v.trim()) notSaved(add); };
+  useLayer(true, close, add);
+  useInSight(box, body);
+  useEffect(() => {
+    const from = document.activeElement;
+    takeKeyboard(box.current);
+    return () => { if (from.isConnected) from.focus({ preventScroll: true }); };
+  }, []);
+  return html`<div class="scrim" onMouseDown=${e => { if (e.target === e.currentTarget) close(); }}>
+    <div class="modal" role="dialog" aria-modal="true" aria-label="Capture" tabindex="-1" ref=${box}>
+      <header class="modal-h"><h2>Capture</h2><button class="icon-btn" aria-label="Close" data-tip="Close" onClick=${close}><${Icon} name="x" /></button></header>
+      <div class="modal-b" ref=${body}>
+        <${AutoTextarea} class="field" rows="4" value=${v} autofocus placeholder="What’s on your mind?" aria-label="Capture to Inbox" onInput=${e => setV(e.target.value)} />
+      </div>
+      <footer class="modal-f"><span class="spacer"></span><button class="btn ghost" onClick=${close}>Cancel</button><button class="btn primary" onClick=${add} disabled=${!v.trim()}>Add to Inbox</button></footer>
+    </div>
+  </div>`;
+}
+
+/* ==== History and Settings, at the rail's foot ==== */
+/* The tasks ticked in the last days (see logDone), a pane a day as the Calendar's, the latest first: what my days
+   went on. */
+function HistoryView() {
+  const t = todayISO();
+  const done = all('done').filter(d => dayDiff(d.day, t) < HISTORY_DAYS).sort((a, b) => byCreated(b, a));
+  return html`<div class="page">
+    <${PageHeader} nav="tools" icon="history" title="History" />
+    ${done.length ? [...new Set(done.map(d => d.day))].map(d => html`<${Block} key=${d} title=${paneDay(d)}><ul class="list">
+      ${done.filter(x => x.day === d).map(x => html`<li key=${x.id} class="li"><span class="li-title">${x.title}</span></li>`)}
+    </ul><//>`) : html`<p class="empty">Nothing done in the last ${HISTORY_DAYS} days.</p>`}
+  </div>`;
+}
+/* Settings take effect as they're changed, as a Mac's do. Contexts are docs of their own, as tasks name them:
+   renamed, dragged into Next's order, added at their foot; one still holding tasks has no trash, as they'd have
+   nowhere to show. Restore writes a backup's entries as they are (same id replaced, nothing deleted), with Undo. */
+const HOURS = Array.from({ length: 13 }, (_, h) => ({ id: h, label: new Date(2000, 0, 1, h).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) }));
+const REVIEW_DAYS = [6, 0].map(d => ({ id: d, label: WD_LONG[d] }));
+function SettingsView() {
+  const file = useRef(null), contexts = inOrder('context'), tap = useTapped();
+  /* Saved as the browser saves any download. */
+  const download = () => {
+    const data = JSON.stringify({ app: 'sybil', items: Object.values(store.items) }, null, 1);
+    Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([data])), download: `sybil-backup-${todayISO()}.json` }).click();
+  };
+  const restore = async e => {
+    const f = e.target.files[0];
+    e.target.value = '';
+    let d;
+    try { d = JSON.parse(await f.text()); } catch {}
+    if (d?.app !== 'sybil' || !Array.isArray(d.items)) return toast('That file isn’t a SIByL backup.', { bad: true });
+    toast(`Restored ${d.items.length} entries`, { undo: undoable(() => d.items.forEach(put)) });
+  };
+  return html`<div class="page">
+    <${PageHeader} nav="tools" icon="settings" title="Settings" />
+    <${Block} title="Inbox tickler"><${AutoTextarea} class="field" rows="3" aria-label="Inbox tickler" value=${setting('tickler')} onInput=${e => setSetting('tickler', e.target.value)} /><//>
+    <${Block} title="Day"><div class="row"><span>Starts at</span><${Select} aria-label="Day starts at" options=${HOURS} value=${setting('dayStart')} onChange=${v => setSetting('dayStart', +v)} /></div><//>
+    <${Block} title="Weekly review"><div class="row"><${Select} aria-label="On" options=${REVIEW_DAYS} value=${setting('reviewDay')} onChange=${v => setSetting('reviewDay', +v)} /></div><//>
+    <${Block} title="Contexts"><ul class="lines" data-zone>
+      ${contexts.map(c => html`<${ListLine} key=${c.id} ...${tap(c.id)} text=${c.title} onSave=${title => patchItem(c.id, { title })} at=${c.id}
+        onDelete=${!all('task').some(r => r.context === c.id) && (() => deleteThing(c))} onMove=${before => placeInList(contexts, c, before)} />`)}
+      <${AddLine} hint="New context" onAdd=${lines => lines.forEach(title => makeThing('context', { title }))} />
+    </ul><//>
+    <${Block} title="Sync"><div class="row"><button class="btn" onClick=${auth ? disconnect : connect}>${auth ? 'Disconnect' : 'Connect'} Dropbox</button></div><//>
+    <${Block} title="Backup"><div class="row"><button class="btn" onClick=${download}>Download backup</button><button class="btn" onClick=${() => file.current.click()}>Restore from…</button></div>
+      <input ref=${file} type="file" accept="application/json,.json" hidden onChange=${restore} /><//>
+  </div>`;
+}
+
+/* ==== The app ==== */
+/* Ticklers: what repeats, by when it next comes up, a new one weekly. Someday: what I might do one day, with no day
+   set, an Inbox of its own (Picks' rows with a trash), in the order dragged, only ever made a project (see
+   TaskEditor). Projects: those going on, then those on hold (committed to, so not Someday's: the user's ask). */
+const VIEWS = { next: NextView, inbox: InboxView, sweep: SweepView, calendar: CalendarView, history: HistoryView, settings: SettingsView,
+  ticklers: () => {
+    const list = all('task').filter(isRepeating).sort(byDay), tasks = taskRows(r => fmtDay(r.date)), adding = newOpen('task');
+    return html`<div class="page">
+      <${PageHeader} nav="ticklers"><${AddButton} label="New tickler" onClick=${() => openThing({ kind: 'task', ...TICKLER })} /><//>
+      ${adding && html`<${NewThing} />`}
+      ${list.length ? html`<${Block} data-zone>${tasks(list)}<//>` : !adding && html`<p class="empty">Nothing repeats.</p>`}
+    </div>`;
+  },
+  someday: () => html`<div class="page">
+    <${PageHeader} nav="someday"><${AddButton} label="New task" onClick=${() => openThing({ kind: 'task', date: '' })} /><//>
+    ${newOpen('task') && html`<${NewThing} />`}
+    <${Picks} kind="task" list=${all('task').filter(r => kindOf(r) === 'someday').sort(byOrder)} trash empty="Nothing for someday." />
+  </div>`,
+  projects: () => { const list = inOrder('project'), hold = list.filter(isHeld); return html`<div class="page">
+    <${PageHeader} nav="projects"><${AddButton} label="New project" onClick=${() => openThing({ kind: 'project' })} /><//>
+    ${newOpen('project') && html`<${NewThing} />`}
+    <${Picks} kind="project" list=${list.filter(p => !isHeld(p))} empty=${!hold.length} />
+    <${Picks} kind="project" list=${hold} title="On hold" />
+  </div>`; }, research: ResearchView };
+function App() {
+  useLayoutEffect(() => { main().scrollTop = scrollTo; }, [route]);
+  const View = VIEWS[route.view];
+  const t = shownToast;
+  return html`<div class="app">
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true" focusable="false" dangerouslySetInnerHTML=${{ __html: ART_DEFS }}></svg>
+    <${Sidebar} />
+    <header class="topbar"><${Tools} /></header>
+    <main class="main" key=${route.view}>
+      <${View} />
+    </main>
+    ${route.view !== 'inbox' && html`<button class="fab" aria-label="Capture to Inbox" data-tip="Capture to Inbox" onClick=${capture}><${Icon} name="capture" size=${26} /></button>`}
+    ${ui.window && html`<${Capture} />`}
+    ${ui.splash && html`<${Splash} key=${ui.splash.words} ...${ui.splash} />`}
+    <div class="toasts" aria-live="polite">${t && html`<div class="toast" key=${t.id}>
+      <span class=${cx(t.bad && 'bad')}>${t.msg}</span>
+      ${t.undo && html`<button onClick=${() => { t.undo(); dismissToast(t.id); }}>Undo</button>`}
+      <button aria-label="Dismiss" data-tip="Dismiss" onClick=${() => dismissToast(t.id)}><${Icon} name="x" size=${14} /></button>
+    </div>`}</div>
+  </div>`;
+}
+
+/* Every key SIByL answers, once the box typed in (typing) and a list's cursor (PickList) have had theirs. Esc closes
+   the newest thing open (useLayer), else lets go of the box, as a browser's address bar does. Enter is the Done of
+   what's open wherever the keyboard is in it, as a Mac dialog's Return (Enter on a weekday toggled it instead of
+   saving), but not on a link, words to rename or a file input, nor with Shift in a box taking several lines; Ctrl or
+   ⌘ + Enter anywhere; a moment later, once a box has kept its words (an info). The rest are the page's, not while
+   typing nor under the window: a button a key presses carries data-kbd (the Sweep's OK, Decide and Stop, a page's +
+   as Shift + N; Space on a button Tab is on presses that one), else C captures, Shift + S starts the Sweep, a digit
+   goes to its section and Backspace goes back (goBack). With a thing open only C and Shift + N work, as their
+   buttons do (Capture floats over it, the + saves it first): the rest would leave it unsaved. Esc and Backspace are
+   always SIByL's, so the browser never acts on them (Backspace has been its Back, and has scrolled the page). */
+document.addEventListener('keydown', e => {
+  if (e.defaultPrevented) return;
+  const t = e.target, typed = t.matches('input, textarea, select'), top = layers.at(-1)?.current, mod = e.ctrlKey || e.metaKey;
+  if (e.key === 'Escape' && top) { e.preventDefault(); return top.close(e); }
+  if (e.key === 'Enter' && top?.done) {
+    if (e.repeat || (!mod && (t.matches('a, [role=button], input[type=file]') || (e.shiftKey && t.matches('textarea:not([enterkeyhint=done])'))))) return;
+    e.preventDefault();
+    return setTimeout(() => layers.at(-1)?.current.done?.());
+  }
+  if (e.key === 'Escape' && typed) { e.preventDefault(); return t.blur(); }
+  if (mod || e.altKey || typed || (e.key === ' ' && t.matches('button'))) return;
+  if (e.key === 'Escape' || e.key === 'Backspace') e.preventDefault();
+  if (ui.window) return;
+  const kbd = { ' ': 'space', Escape: 'esc', S: 'stop', N: 'new' }[e.key], press = kbd && document.querySelector(`[data-kbd="${kbd}"]`);
+  if (e.key === 'c' || e.key === 'C') { e.preventDefault(); capture(); }
+  else if (opened && kbd !== 'new') return;
+  else if (press) { e.preventDefault(); if (!e.repeat) press.click(); }
+  else if (e.key === 'S') { e.preventDefault(); sweep(); }
+  else if (/^[1-9]$/.test(e.key) && NAV[e.key - 1]) { e.preventDefault(); navigate(NAV[e.key - 1].id); }
+  else if (e.key === 'Backspace' && !e.shiftKey && !e.repeat) goBack();
+});
+/* A phone's Back puts its keyboard away but leaves the box focused, and the tabs stepped aside for nothing (see .app):
+   as the frame grows back by a keyboard's height (more than a browser bar's), the box is let go, as Esc lets go. */
+let tall = innerHeight;
+addEventListener('resize', () => {
+  if (touching() && innerHeight - tall > 150) document.activeElement.blur();
+  tall = innerHeight;
+});
+/* A redraw a minute while in view, and one on return, keep today and what's due current, and it syncs again (see
+   watch). Going out of sight, what's not pushed yet goes, and the Sweep under way is put by (see route). */
+setInterval(() => { if (!document.hidden) refresh(); }, 60000);
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) { refresh(); return watch(); }
+  unwatch();
+  if (store.unpushed) syncNow();
+  localStorage.setItem('sybil.sweep', JSON.stringify(route.view === 'sweep' ? route.kept : null));
+});
+addEventListener('online', () => { unwatch(); watch(); refresh(); });
+addEventListener('offline', refresh);
+/* Leaving with changes Dropbox hasn't had yet asks first, in the browser's own words, as Google Keep does (the user's
+   ask). */
+addEventListener('beforeunload', e => { if (auth && store.unpushed) e.preventDefault(); });
+
+/* Inter comes in parts by script (Google's subsets), each fetched the first time a page shows one of its letters, and
+   that page then drew its words late (Ticklers' and Research's ă, ș, ț): every part the lists need is fetched
+   at the start. The copy is asked to stay when the browser runs short of room. */
+document.fonts.load('1em Inter', JSON.stringify(store.items));
+navigator.storage.persist();
+/* What the address brings, read once as SIByL starts and cleared (before hold adds its history entry): Dropbox's
+   sign-in coming back. */
+const code = new URLSearchParams(location.search).get('code');
+if (location.search) history.replaceState(null, '', home);
+if (code) signedIn(code);
+/* Offline (see sw.js); none over plain http. */
+navigator.serviceWorker?.register('sw.js');
+refresh();
+watch();
+});
+</script>
